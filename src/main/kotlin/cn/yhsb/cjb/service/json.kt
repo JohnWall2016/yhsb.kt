@@ -74,7 +74,6 @@ class JsonService<T : Request>(params: T) : Jsonable() {
     private var datas: List<T> = listOf(params)
 }
 
-@Suppress("MemberVisibilityCanBePrivate")
 class Result<T : Jsonable> : Jsonable(), Iterable<T> {
     var rowcount = 0
         private set
