@@ -119,11 +119,10 @@ open class HttpSocket(
             addHeader("Connection", "keep-alive")
             addHeader("Cache-Control", "max-age=0")
             addHeader("Upgrade-Insecure-Requests", "1")
-            addHeader(
-                    "User-Agent",
-                    "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36"
-            )
-            addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
+            addHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) " +
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36")
+            addHeader("Accept", "text/html,application/xhtml+xml,application/xml;" +
+                    "q=0.9,image/webp,image/apng,*/*;q=0.8")
             addHeader("Accept-Encoding", "gzip, deflate")
             addHeader("Accept-Language", "zh-CN,zh;q=0.9")
         }
