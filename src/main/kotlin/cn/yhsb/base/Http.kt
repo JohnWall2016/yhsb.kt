@@ -176,18 +176,21 @@ class HttpRequest(
 
     fun toByteArray(): ByteArray {
         val buf = ByteArrayOutputStream(512)
-        buf.write("$method $path HTTP/1.1\r\n".toByteArray(charset))
+
+        fun ByteArrayOutputStream.write(s: String, cs: Charset = charset) = write(s.toByteArray(cs))
+
+        buf.write("$method $path HTTP/1.1\r\n")
         header.forEach { entry ->
             entry.value.forEach { value ->
-                buf.write("${entry.key}: $value\r\n".toByteArray(charset))
+                buf.write("${entry.key}: $value\r\n")
             }
         }
         if (body.size() > 0) {
-            buf.write("content-length: ${body.size()}\r\n".toByteArray(charset))
+            buf.write("content-length: ${body.size()}\r\n")
         }
-        buf.write("\r\n".toByteArray(charset))
+        buf.write("\r\n")
         if (body.size() > 0) {
-            buf.write(body.toByteArray())
+            body.writeTo(buf)
         }
         return buf.toByteArray()
     }

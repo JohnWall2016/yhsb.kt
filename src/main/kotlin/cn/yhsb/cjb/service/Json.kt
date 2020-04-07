@@ -11,7 +11,7 @@ open class JsonField {
     var value: String? = null
         protected set
 
-    val name: String
+    open val name: String
         get() = "未知值: $value"
 
     override fun toString(): String {
@@ -56,6 +56,10 @@ open class Jsonable {
     fun toJson() = GsonInstance.toJson(this)
 
     override fun toString() = toJson()
+
+    companion object {
+        inline fun <reified T> fromJson(json: String): T = GsonInstance.fromJson(json)
+    }
 }
 
 class JsonService<T : Request>(params: T) : Jsonable() {
