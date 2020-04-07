@@ -39,7 +39,7 @@ interface JBState {
         get() {
             val jfState = jfState?.value
             val cbState = cbState?.value
-            return if (jfState == null || jfState == "0") "未参保" else when (jfState) {
+            return when (jfState) {
                 "1" -> when (cbState) {
                     "1" -> "正常缴费人员"
                     else -> "未知类型参保缴费人员: $cbState"
@@ -54,6 +54,7 @@ interface JBState {
                     "4" -> "终止参保人员"
                     else -> "未知类型终止缴费人员: $cbState"
                 }
+                "0", null -> "未参保"
                 else -> "未知类型人员: $jfState, $cbState"
             }
         }
