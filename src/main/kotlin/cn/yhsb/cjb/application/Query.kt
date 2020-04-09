@@ -211,7 +211,7 @@ class JfxxQuery : CommandWithHelp() {
             getJfxxRecords(jfxx!!, paidRecords, unpaidRecords)
             records = orderAndSum(paidRecords)
             unrecords = orderAndSum(unpaidRecords)
-            printJfxxRecords(records, "已拨付缴费历史记录:")
+            printJfxxRecords(records, "\n已拨付缴费历史记录:")
             if (unpaidRecords.isNotEmpty()) {
                 printJfxxRecords(unrecords, "\n未拨付补录入记录:")
             }
