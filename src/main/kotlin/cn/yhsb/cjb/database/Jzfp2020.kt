@@ -9,7 +9,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 /** 扶贫数据表 */
 open class FPData(name: String) : Table(name) {
     /** 序号 */
-    val id = integer("NO").entityId().autoIncrement()
+    val id = integer("NO").primaryKey().autoIncrement()
 
     /** 乡镇街 */
     val xzj = text("Xzj")
@@ -75,7 +75,7 @@ open class FPData(name: String) : Table(name) {
     val jbrdsfFirstDate = text("JbrdsfFirstDate")
 
     /** 居保认定身份最后日期 */
-    val jbrdsfSecondDate = text("JbrdsfSecondDate")
+    val jbrdsfLastDate = text("JbrdsfLastDate")
 
     /** 居保参保情况 */
     val jbcbqk = text("Jbcbqk")
@@ -159,7 +159,7 @@ object Jbrymx : Table("Jbrymx") {
     val cbsj = text("Cbsj")
 }
 
-fun <T> trans(statement: Transaction.() -> T): T {
+fun <T> transaction(statement: Transaction.() -> T): T {
     val db = Database.connect(Config.Database.url,
             driver = Config.Database.driver,
             user = Config.Database.user.id,
