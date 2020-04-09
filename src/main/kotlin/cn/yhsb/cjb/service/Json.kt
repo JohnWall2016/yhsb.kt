@@ -107,9 +107,9 @@ class Result<T : Jsonable> : Jsonable(), Iterable<T> {
 
     operator fun get(index: Int): T = data?.get(index) ?: throw Exception("datas is null")
 
-    fun size(): Int = data?.size ?: 0
+    val size: Int get() = data?.size ?: 0
 
-    fun empty(): Boolean = size() == 0
+    fun empty(): Boolean = size == 0
 
     override fun iterator(): Iterator<T> = iterator {
         data?.forEach {

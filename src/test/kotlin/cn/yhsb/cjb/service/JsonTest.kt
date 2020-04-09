@@ -14,7 +14,7 @@ class JsonTest {
 
         val result2 = Result.fromJson<Person>(json)
         println("${result.javaClass}: $result2")
-        println(result2.size())
+        println(result2.size)
         println(result2[0])
         for (d in result2) {
             println(d)
