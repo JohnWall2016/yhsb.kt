@@ -46,7 +46,8 @@ object GsonInstance {
     }.create()
 
     inline fun <reified T> fromJson(json: String): T {
-        return gson.fromJson(json, object : TypeToken<T>() {}.type)
+        val type = object : TypeToken<T>() {}.type
+        return gson.fromJson(json, type)
     }
 
     fun <T> toJson(obj: T): String = gson.toJson(obj)
@@ -56,10 +57,6 @@ open class Jsonable {
     fun toJson() = GsonInstance.toJson(this)
 
     override fun toString() = toJson()
-
-    companion object {
-        inline fun <reified T> fromJson(json: String): T = GsonInstance.fromJson(json)
-    }
 }
 
 class JsonService<T : Request>(params: T) : Jsonable() {
@@ -114,15 +111,16 @@ class Result<T : Jsonable> : Jsonable(), Iterable<T> {
 
     fun empty(): Boolean = size() == 0
 
-    companion object {
-        inline fun <reified T : Jsonable> fromJson(json: String): Result<T> {
-            return GsonInstance.fromJson(json)
-        }
-    }
-
     override fun iterator(): Iterator<T> = iterator {
         data?.forEach {
             yield(it)
+        }
+    }
+
+    companion object {
+        inline fun <reified T : Jsonable> fromJson(json: String): Result<T> {
+            val type = TypeToken.getParameterized(Result::class.java, T::class.java).type
+            return GsonInstance.gson.fromJson(json, type)
         }
     }
 }

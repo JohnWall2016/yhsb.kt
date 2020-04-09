@@ -53,12 +53,9 @@ class Session(host: String, port: Int, private val userID: String, private val p
 
     fun sendService(id: String) = request(toService(id))
 
-    inline fun <reified T : Jsonable> fromJson(json: String): Result<T> = Result.fromJson(json)
+    inline fun <reified T : Jsonable> fromResult(json: String) = Result.fromJson<T>(json)
 
-    inline fun <reified T : Jsonable> getResult(): Result<T> {
-        val result = readBody()
-        return fromJson(result)
-    }
+    inline fun <reified T : Jsonable> getResult() = fromResult<T>(readBody())
 
     fun login(): String {
         sendService("loadCurrentUser")

@@ -16,6 +16,17 @@ class RequestTest {
     }
 
     @Test
+    fun testGrinfoRequest() {
+        Session.autoLogin {
+            it.sendService(GrinfoRequest("430321197502110542"))
+            val res = it.getResult<GrinfoRequest.Grinfo>()
+            for (cbxx in res) {
+                println("${cbxx.name} ${cbxx.idcard} ${cbxx.jbState}")
+            }
+        }
+    }
+
+    @Test
     fun testJfxxRequest() {
         Session.autoLogin { session ->
             session.sendService(JfxxRequest("430321197502110542"))
