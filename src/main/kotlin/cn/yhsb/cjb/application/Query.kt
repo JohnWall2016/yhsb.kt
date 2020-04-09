@@ -1,9 +1,6 @@
 package cn.yhsb.cjb.application
 
-import cn.yhsb.base.CommandWithHelp
-import cn.yhsb.base.Excels
-import cn.yhsb.base.getOrCopyRowFrom
-import cn.yhsb.base.save
+import cn.yhsb.base.*
 import cn.yhsb.cjb.request.CbxxRequest
 import cn.yhsb.cjb.request.CbxxRequest.Cbxx
 import cn.yhsb.cjb.request.GrinfoRequest
@@ -177,20 +174,21 @@ class JfxxQuery : CommandWithHelp() {
     override fun run() {
         val idcard = idcard ?: return
 
-        var info: Cbxx? = null
-        var jfxx: Result<Jfxx>? = null
+        val (info, jfxx) = Session.autoLogin { session ->
+            var info: Cbxx? = null
+            var jfxx: Result<Jfxx>? = null
 
-        Session.autoLogin { session ->
             session.sendService(CbxxRequest(idcard))
             val infoRes = session.getResult<Cbxx>()
             if (infoRes.empty() || !infoRes[0].valid())
-                return@autoLogin
+                return@autoLogin Pair(info, jfxx)
             info = infoRes[0]
 
             session.sendService(JfxxRequest(idcard))
             val jfxxRes = session.getResult<Jfxx>()
             if (!jfxxRes.empty() && jfxxRes[0].year != null)
                 jfxx = jfxxRes
+            return@autoLogin Pair(info, jfxx)
         }
 
         if (info == null) {
@@ -198,7 +196,7 @@ class JfxxQuery : CommandWithHelp() {
             return
         }
 
-        printInfo(info!!)
+        printInfo(info)
 
         var records: List<JfxxRecord>? = null
         val unrecords: List<JfxxRecord>?
@@ -208,7 +206,7 @@ class JfxxQuery : CommandWithHelp() {
         } else {
             val paidRecords = mutableMapOf<Int, JfxxRecord>()
             val unpaidRecords = mutableMapOf<Int, JfxxRecord>()
-            getJfxxRecords(jfxx!!, paidRecords, unpaidRecords)
+            getJfxxRecords(jfxx, paidRecords, unpaidRecords)
             records = orderAndSum(paidRecords)
             unrecords = orderAndSum(unpaidRecords)
             printJfxxRecords(records, "\n已拨付缴费历史记录:")
@@ -222,11 +220,11 @@ class JfxxQuery : CommandWithHelp() {
             val xlsx = Paths.get(dir, "雨湖区城乡居民基本养老保险缴费查询单模板.xlsx")
             val workbook = Excels.load(xlsx.toString())
             val sheet = workbook.getSheetAt(0)
-            sheet.getRow(4).getCell(0).setCellValue(info?.name)
-            sheet.getRow(4).getCell(2).setCellValue(info?.idcard)
-            sheet.getRow(4).getCell(4).setCellValue(info?.agency)
-            sheet.getRow(4).getCell(6).setCellValue(info?.czName)
-            sheet.getRow(4).getCell(10).setCellValue(info?.dealDate)
+            sheet.cell("A5").setValue(info.name)
+            sheet.cell("C5").setValue(info.idcard)
+            sheet.cell("E5").setValue(info.agency)
+            sheet.cell("G5").setValue(info.czName)
+            sheet.cell("K5").setValue(info.dealDate)
 
             if (records != null) {
                 var index = 8
@@ -234,30 +232,28 @@ class JfxxQuery : CommandWithHelp() {
                 for (r in records) {
                     val row = sheet.getOrCopyRowFrom(index++, copyIndex, true)
                     if (r is JfxxTotalRecord) {
-                        row.getCell(0).setCellValue("")
-                        row.getCell(1).setCellValue("合计")
+                        row.cell("A").setValue("")
+                        row.cell("B").setValue("合计")
                     } else {
-                        row.getCell(0).setCellValue("${index - copyIndex}")
-                        row.getCell(1).setCellValue(r.year?.toString() ?: "")
+                        row.cell("A").setValue("${index - copyIndex}")
+                        row.cell("B").setValue(r.year)
                     }
-                    row.getCell(2).setCellValue(r.grjf.toString())
-                    row.getCell(3).setCellValue(r.sjbt.toString())
-                    row.getCell(4).setCellValue(r.sqbt.toString())
-                    row.getCell(5).setCellValue(r.xjbt.toString())
-                    row.getCell(6).setCellValue(r.zfdj.toString())
-                    row.getCell(7).setCellValue(r.jtbz.toString())
+                    row.cell("C").setValue(r.grjf)
+                    row.cell("D").setValue(r.sjbt)
+                    row.cell("E").setValue(r.sqbt)
+                    row.cell("F").setValue(r.xjbt)
+                    row.cell("G").setValue(r.zfdj)
+                    row.cell("H").setValue(r.jtbz)
                     if (r is JfxxTotalRecord) {
-                        row.getCell(8).setCellValue("总计")
-                        row.getCell(10).setCellValue(r.total.toString())
+                        row.cell("I").setValue("总计")
+                        row.cell("K").setValue(r.total)
                     } else {
-                        row.getCell(8)
-                                .setCellValue(r.sbjg.joinToString("|"))
-                        row.getCell(10)
-                                .setCellValue(r.hbrq.joinToString("|"))
+                        row.cell("I").setValue(r.sbjg.joinToString("|"))
+                        row.cell("K").setValue(r.hbrq.joinToString("|"))
                     }
                 }
             }
-            workbook.save(Paths.get(dir, info?.name + "缴费查询单.xlsx").toString())
+            workbook.save(Paths.get(dir, info.name + "缴费查询单.xlsx").toString())
         }
     }
 
