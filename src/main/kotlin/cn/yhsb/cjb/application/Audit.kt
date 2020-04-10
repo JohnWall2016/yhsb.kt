@@ -1,7 +1,7 @@
 package cn.yhsb.cjb.application
 
 import cn.yhsb.base.*
-import cn.yhsb.cjb.database.FPHistoryData
+import cn.yhsb.cjb.database.FPHistoryData as FP
 import cn.yhsb.cjb.database.transaction
 import cn.yhsb.cjb.request.CbshRequest
 import cn.yhsb.cjb.request.jbKindMap
@@ -11,7 +11,7 @@ import picocli.CommandLine
 import java.lang.String.format
 import java.nio.file.Paths
 
-typealias FP = FPHistoryData
+// typealias FP = FPHistoryData
 
 @CommandLine.Command(description = ["特殊参保人员身份信息变更导出程序"])
 class Audit : CommandWithHelp() {
@@ -53,7 +53,7 @@ class Audit : CommandWithHelp() {
                 for ((i, d) in result.withIndex()) {
                     val rs = FP.select { FP.idcard eq d.idcard!! }.firstOrNull()
                     if (rs != null) {
-                        println(format("%4d %s %s %s", i+1, d.idcard, d.name?.padRight(8), d.birthDay) +
+                        println(format("%4d %s %s %s", i+1, d.idcard, d.name?.padRight(6), d.birthDay) +
                                 " ${rs[FP.jbrdsf]} ${if (d.name != rs[FP.name]) rs[FP.name] else ""}")
                         if (export) {
                             val row = sheet?.getOrCopyRowFrom(index++, copyIndex, false)
@@ -63,7 +63,7 @@ class Audit : CommandWithHelp() {
                             save = true
                         }
                     } else {
-                        println(format("%4d %s %s %s", i+1, d.idcard, d.name?.padRight(8), d.birthDay))
+                        println(format("%4d %s %s %s", i+1, d.idcard, d.name?.padRight(6), d.birthDay))
                     }
                 }
             }
@@ -71,6 +71,7 @@ class Audit : CommandWithHelp() {
                 println("导出 批量信息变更$span.xls")
                 workbook?.save(Paths.get(dir, "批量信息变更$span.xls"))
             }
+            println("Done")
         }
     }
 }
