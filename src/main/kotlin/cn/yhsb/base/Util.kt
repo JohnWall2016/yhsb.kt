@@ -36,14 +36,18 @@ fun padCount(s: String, width: Int, specialChars: Array<out SpecialChars>): Int 
     return width - n
 }
 
+private fun Char.times(n: Int, b: StringBuilder) {
+    for (i in 1..n) {
+        b.append(this)
+    }
+}
+
 fun String.padLeft(width: Int, padChar: Char = ' ',
                    vararg specialChars: SpecialChars = arrayOf(chineseChars)): String {
     val count = padCount(this, width, specialChars)
     return if (count > 0) {
         val b = StringBuilder()
-        for (i in 1..count) {
-            b.append(padChar)
-        }
+        padChar.times(count, b)
         b.append(this)
         b.toString()
     } else {
@@ -57,9 +61,7 @@ fun String.padRight(width: Int, padChar: Char = ' ',
     return if (count > 0) {
         val b = StringBuilder()
         b.append(this)
-        for (i in 1..count) {
-            b.append(padChar)
-        }
+        padChar.times(count, b)
         b.toString()
     } else {
         this
