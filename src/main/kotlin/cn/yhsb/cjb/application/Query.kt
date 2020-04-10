@@ -33,7 +33,7 @@ class GrinfoQuery : CommandWithHelp() {
             for (idcard in idcards) {
                 it.sendService(GrinfoRequest(idcard))
                 val res = it.getResult<Grinfo>()
-                if (res.empty()) {
+                if (res.isEmpty()) {
                     println("$idcard 未在我区参保")
                 } else {
                     val info = res[0]
@@ -180,13 +180,13 @@ class JfxxQuery : CommandWithHelp() {
 
             session.sendService(CbxxRequest(idcard))
             val infoRes = session.getResult<Cbxx>()
-            if (infoRes.empty() || !infoRes[0].valid())
+            if (infoRes.isEmpty() || !infoRes[0].valid())
                 return@autoLogin Pair(info, jfxx)
             info = infoRes[0]
 
             session.sendService(JfxxRequest(idcard))
             val jfxxRes = session.getResult<Jfxx>()
-            if (!jfxxRes.empty() && jfxxRes[0].year != null)
+            if (!jfxxRes.isEmpty() && jfxxRes[0].year != null)
                 jfxx = jfxxRes
             return@autoLogin Pair(info, jfxx)
         }

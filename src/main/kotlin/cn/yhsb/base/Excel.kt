@@ -4,9 +4,9 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.ss.usermodel.*
 import org.apache.poi.ss.util.CellRangeAddressList
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import org.apache.poi.xwpf.usermodel.ICell
 import java.math.BigDecimal
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
 
 
@@ -15,28 +15,29 @@ object Excels {
         XLS, XLSX, AUTO
     }
 
-    fun load(fileName: String, type: Type = Type.AUTO): Workbook {
-        var t = type
-        if (t == Type.AUTO) {
-            val fn = fileName.toLowerCase()
-            t = when {
-                fn.endsWith(".xls") -> Type.XLS
-                fn.endsWith(".xlsx") -> Type.XLSX
-                else -> Type.AUTO
+    fun load(fileName: String, type: Type = Type.AUTO): Workbook  = load(Paths.get(fileName), type)
+
+    fun load(file: Path, type: Type = Type.AUTO): Workbook {
+        return when (type) {
+            Type.XLS -> HSSFWorkbook(Files.newInputStream(file))
+            Type.XLSX -> XSSFWorkbook(Files.newInputStream(file))
+            Type.AUTO -> {
+                val fn = file.fileName.toString().toLowerCase()
+                when {
+                    fn.endsWith(".xls") -> HSSFWorkbook(Files.newInputStream(file))
+                    fn.endsWith(".xlsx") -> XSSFWorkbook(Files.newInputStream(file))
+                    else -> throw UnsupportedOperationException("Unknown excel type")
+                }
             }
-        }
-        return when (t) {
-            Type.XLS -> HSSFWorkbook(Files.newInputStream(Paths.get(fileName)))
-            Type.XLSX -> XSSFWorkbook(Files.newInputStream(Paths.get(fileName)))
-            Type.AUTO -> throw UnsupportedOperationException("Unknown excel type")
         }
     }
 }
 
-fun Workbook.save(fileName: String) {
-    Files.newOutputStream(Paths.get(fileName)).use { out -> write(out) }
+fun Workbook.save(file: Path) {
+    Files.newOutputStream(file).use { write(it) }
 }
 
+fun Workbook.save(fileName: String) = save(Paths.get(fileName))
 
 class ExcelException : RuntimeException {
     constructor(msg: String) : super(msg)

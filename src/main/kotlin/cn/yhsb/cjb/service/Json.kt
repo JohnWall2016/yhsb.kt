@@ -109,7 +109,9 @@ class Result<T : Jsonable> : Jsonable(), Iterable<T> {
 
     val size: Int get() = data?.size ?: 0
 
-    fun empty(): Boolean = size == 0
+    fun isEmpty(): Boolean = size == 0
+
+    fun isNotEmpty(): Boolean = !isEmpty()
 
     override fun iterator(): Iterator<T> = iterator {
         data?.forEach {
