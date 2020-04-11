@@ -31,8 +31,8 @@ class GrinfoQuery : CommandWithHelp() {
     override fun run() {
         Session.autoLogin {
             for (idcard in idcards) {
-                it.sendService(GrinfoRequest(idcard))
-                val res = it.getResult<Grinfo>()
+                sendService(GrinfoRequest(idcard))
+                val res = getResult<Grinfo>()
                 if (res.isEmpty()) {
                     println("$idcard 未在我区参保")
                 } else {
@@ -124,22 +124,20 @@ class JfxxQuery : CommandWithHelp() {
     }
 
     fun orderAndSum(records: Map<Int, JfxxRecord>): List<JfxxRecord> {
-        val results = records.values.sortedBy { it.year }
-        val list = mutableListOf<JfxxRecord>()
-        val total = JfxxTotalRecord()
-        results.forEach { r: JfxxRecord ->
-            list.add(r)
-            total.grjf += r.grjf
-            total.sjbt += r.sjbt
-            total.sqbt += r.sqbt
-            total.xjbt += r.xjbt
-            total.zfdj += r.zfdj
-            total.jtbz += r.jtbz
+        val results = records.values.sortedBy { it.year }.toMutableList()
+        val total = results.fold(JfxxTotalRecord()) { acc, n ->
+            acc.grjf += n.grjf
+            acc.sjbt += n.sjbt
+            acc.sqbt += n.sqbt
+            acc.xjbt += n.xjbt
+            acc.zfdj += n.zfdj
+            acc.jtbz += n.jtbz
+            acc
         }
         total.total = total.grjf + total.sjbt + total.sqbt +
                 total.xjbt + total.zfdj + total.jtbz
-        list.add(total)
-        return list
+        results.add(total)
+        return results
     }
 
     fun printInfo(info: Cbxx) {
@@ -174,21 +172,21 @@ class JfxxQuery : CommandWithHelp() {
     override fun run() {
         val idcard = idcard ?: return
 
-        val (info, jfxx) = Session.autoLogin { session ->
+        val (info, jfxx) = Session.autoLogin {
             var info: Cbxx? = null
             var jfxx: Result<Jfxx>? = null
 
-            session.sendService(CbxxRequest(idcard))
-            val infoRes = session.getResult<Cbxx>()
-            if (infoRes.isEmpty() || !infoRes[0].valid())
+            sendService(CbxxRequest(idcard))
+            val infoRes = getResult<Cbxx>()
+            if (infoRes.isEmpty() || infoRes[0].invalid())
                 return@autoLogin Pair(info, jfxx)
             info = infoRes[0]
 
-            session.sendService(JfxxRequest(idcard))
-            val jfxxRes = session.getResult<Jfxx>()
-            if (!jfxxRes.isEmpty() && jfxxRes[0].year != null)
+            sendService(JfxxRequest(idcard))
+            val jfxxRes = getResult<Jfxx>()
+            if (jfxxRes.isNotEmpty() && jfxxRes[0].year != null)
                 jfxx = jfxxRes
-            return@autoLogin Pair(info, jfxx)
+            Pair(info, jfxx)
         }
 
         if (info == null) {
@@ -219,41 +217,43 @@ class JfxxQuery : CommandWithHelp() {
             val dir = "D:\\征缴管理"
             val xlsx = Paths.get(dir, "雨湖区城乡居民基本养老保险缴费查询单模板.xlsx")
             val workbook = Excels.load(xlsx.toString())
-            val sheet = workbook.getSheetAt(0)
-            sheet.cell("A5").setValue(info.name)
-            sheet.cell("C5").setValue(info.idcard)
-            sheet.cell("E5").setValue(info.agency)
-            sheet.cell("G5").setValue(info.czName)
-            sheet.cell("K5").setValue(info.dealDate)
+            val sheet = workbook.getSheetAt(0).apply {
+                cell("A5").setValue(info.name)
+                cell("C5").setValue(info.idcard)
+                cell("E5").setValue(info.agency)
+                cell("G5").setValue(info.czName)
+                cell("K5").setValue(info.dealDate)
+            }
 
             if (records != null) {
                 var index = 8
                 val copyIndex = index
                 for (r in records) {
-                    val row = sheet.getOrCopyRowFrom(index++, copyIndex, true)
-                    if (r is JfxxTotalRecord) {
-                        row.cell("A").setValue("")
-                        row.cell("B").setValue("合计")
-                    } else {
-                        row.cell("A").setValue("${index - copyIndex}")
-                        row.cell("B").setValue(r.year)
-                    }
-                    row.cell("C").setValue(r.grjf)
-                    row.cell("D").setValue(r.sjbt)
-                    row.cell("E").setValue(r.sqbt)
-                    row.cell("F").setValue(r.xjbt)
-                    row.cell("G").setValue(r.zfdj)
-                    row.cell("H").setValue(r.jtbz)
-                    if (r is JfxxTotalRecord) {
-                        row.cell("I").setValue("总计")
-                        row.cell("K").setValue(r.total)
-                    } else {
-                        row.cell("I").setValue(r.sbjg.joinToString("|"))
-                        row.cell("K").setValue(r.hbrq.joinToString("|"))
+                    sheet.getOrCopyRowFrom(index++, copyIndex, true).apply {
+                        if (r is JfxxTotalRecord) {
+                            cell("A").setValue("")
+                            cell("B").setValue("合计")
+                        } else {
+                            cell("A").setValue("${index - copyIndex}")
+                            cell("B").setValue(r.year)
+                        }
+                        cell("C").setValue(r.grjf)
+                        cell("D").setValue(r.sjbt)
+                        cell("E").setValue(r.sqbt)
+                        cell("F").setValue(r.xjbt)
+                        cell("G").setValue(r.zfdj)
+                        cell("H").setValue(r.jtbz)
+                        if (r is JfxxTotalRecord) {
+                            cell("I").setValue("总计")
+                            cell("K").setValue(r.total)
+                        } else {
+                            cell("I").setValue(r.sbjg.joinToString("|"))
+                            cell("K").setValue(r.hbrq.joinToString("|"))
+                        }
                     }
                 }
             }
-            workbook.save(Paths.get(dir, info.name + "缴费查询单.xlsx").toString())
+            workbook.save(Paths.get(dir, info.name + "缴费查询单.xlsx"))
         }
     }
 

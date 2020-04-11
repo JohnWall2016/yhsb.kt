@@ -7,8 +7,8 @@ class RequestTest {
     @Test
     fun testCbxxRequest() {
         Session.autoLogin {
-            it.sendService(CbxxRequest("430321197502110542"))
-            val res = it.getResult<CbxxRequest.Cbxx>()
+            sendService(CbxxRequest("430321197502110542"))
+            val res = getResult<CbxxRequest.Cbxx>()
             for (cbxx in res) {
                 println("${cbxx.name} ${cbxx.idcard} ${cbxx.jbState} ${cbxx.jbKind}")
             }
@@ -18,8 +18,8 @@ class RequestTest {
     @Test
     fun testGrinfoRequest() {
         Session.autoLogin {
-            it.sendService(GrinfoRequest("430321197502110542"))
-            val res = it.getResult<GrinfoRequest.Grinfo>()
+            sendService(GrinfoRequest("430321197502110542"))
+            val res = getResult<GrinfoRequest.Grinfo>()
             for (cbxx in res) {
                 println("${cbxx.name} ${cbxx.idcard} ${cbxx.jbState}")
             }
@@ -28,9 +28,9 @@ class RequestTest {
 
     @Test
     fun testJfxxRequest() {
-        Session.autoLogin { session ->
-            session.sendService(JfxxRequest("430321197502110542"))
-            val res = session.getResult<JfxxRequest.Jfxx>()
+        Session.autoLogin {
+            sendService(JfxxRequest("430321197502110542"))
+            val res = getResult<JfxxRequest.Jfxx>()
             res.sortedByDescending { it.year }.forEach {
                 println("${it.year} ${it.type} ${it.item} ${it.amount}")
             }

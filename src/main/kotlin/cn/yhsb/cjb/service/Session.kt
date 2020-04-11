@@ -86,11 +86,11 @@ class Session(host: String, port: Int, private val userID: String, private val p
                         (Config.Service.users[userID] ?: error("invalid user")).id,
                         (Config.Service.users[userID] ?: error("invalid user")).password)
 
-        fun <T> autoLogin(userID: String = "002", action: (Session) -> T): T {
+        fun <T> autoLogin(userID: String = "002", action: Session.() -> T): T {
             new(userID).use {
                 it.login()
                 try {
-                    return action(it)
+                    return it.action()
                 } finally {
                     it.logout()
                 }

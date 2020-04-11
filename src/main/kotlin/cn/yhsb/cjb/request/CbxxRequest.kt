@@ -60,6 +60,8 @@ class CbxxRequest(idcard: String) : Request("executeSncbxxConQ") {
         @SerializedName("aaf103")
         var csName: String? = null
 
-        fun valid(): Boolean = !idcard.isNullOrEmpty()
+        fun invalid(): Boolean = idcard.isNullOrEmpty()
+
+        fun valid(): Boolean = !invalid()
     }
 }

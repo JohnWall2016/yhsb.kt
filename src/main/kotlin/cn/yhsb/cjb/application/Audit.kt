@@ -37,9 +37,9 @@ class Audit : CommandWithHelp() {
             span += "_$end"
         println(span)
 
-        val result = Session.autoLogin { session ->
-            session.sendService(CbshRequest(start, end))
-            return@autoLogin session.getResult<CbshRequest.Cbsh>()
+        val result = Session.autoLogin {
+            sendService(CbshRequest(start, end))
+            getResult<CbshRequest.Cbsh>()
         }
 
         println("共计 ${result.size} 条")
