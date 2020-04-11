@@ -56,11 +56,12 @@ class Audit : CommandWithHelp() {
                         println(format("%4d %s %s %s", i+1, d.idcard, d.name?.padRight(6), d.birthDay) +
                                 " ${rs[FP.jbrdsf]} ${if (d.name != rs[FP.name]) rs[FP.name] else ""}")
                         if (export) {
-                            val row = sheet?.getOrCopyRowFrom(index++, copyIndex, false)
-                            row?.cell("B")?.setValue(d.idcard)
-                            row?.cell("E")?.setValue(d.name)
-                            row?.cell("J")?.setValue(jbKindMap[rs[FP.jbrdsf]])
-                            save = true
+                            sheet?.getOrCopyRowFrom(index++, copyIndex, false)?.apply {
+                                cell("B").setValue(d.idcard)
+                                cell("E").setValue(d.name)
+                                cell("J").setValue(jbKindMap[rs[FP.jbrdsf]])
+                                save = true
+                            }
                         }
                     } else {
                         println(format("%4d %s %s %s", i+1, d.idcard, d.name?.padRight(6), d.birthDay))
