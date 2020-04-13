@@ -159,11 +159,13 @@ object Jbrymx : Table("Jbrymx") {
     val cbsj = text("Cbsj")
 }
 
-fun <T> transaction(statement: Transaction.() -> T): T {
-    val db = Database.connect(Config.Database.url,
+private val jzfp2020 by lazy {
+    Database.connect(Config.Database.url,
             driver = Config.Database.driver,
             user = Config.Database.user.id,
             password = Config.Database.user.password)
+}
 
-    return transaction(db, statement)
+fun <T> jzfp2020Transaction(statement: Transaction.()->T): T {
+    return transaction(jzfp2020, statement)
 }

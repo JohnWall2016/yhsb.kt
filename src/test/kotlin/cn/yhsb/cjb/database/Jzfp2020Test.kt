@@ -8,7 +8,7 @@ typealias tb = FPHistoryData
 class Jzfp2020Test {
     @Test
     fun testJzfp2020() {
-        transaction {
+        jzfp2020Transaction {
             FPHistoryData.select {
                 FPHistoryData.idcard eq "430321200107031259"
             }.forEach {

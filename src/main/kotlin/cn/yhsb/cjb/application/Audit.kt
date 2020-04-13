@@ -1,8 +1,8 @@
 package cn.yhsb.cjb.application
 
 import cn.yhsb.base.*
+import cn.yhsb.cjb.database.jzfp2020Transaction
 import cn.yhsb.cjb.database.FPHistoryData as FP
-import cn.yhsb.cjb.database.transaction
 import cn.yhsb.cjb.request.CbshRequest
 import cn.yhsb.cjb.request.jbKindMap
 import cn.yhsb.cjb.service.Session
@@ -49,7 +49,7 @@ class Audit : CommandWithHelp() {
             var index = 1
             val copyIndex = 1
             var save = false
-            transaction {
+            jzfp2020Transaction {
                 for ((i, d) in result.withIndex()) {
                     val rs = FP.select { FP.idcard eq d.idcard!! }.firstOrNull()
                     if (rs != null) {
