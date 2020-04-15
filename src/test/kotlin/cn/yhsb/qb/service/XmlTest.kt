@@ -34,15 +34,15 @@ const val NSOut = "http://www.molss.gov.cn/"
 const val NSSoapEnvelope = "http://schemas.xmlsoap.org/soap/envelope/"
 
 class OutBody {
-    @Tag(NSOut, "business")
+    @Tag("out:business", NSOut)
     var business = Business()
 }
 
 class OutEnvelope {
-    @Tag(NSSoapEnvelope, "Header")
+    @Tag("soap:Header", NSSoapEnvelope)
     var header = OutHeader()
 
-    @Tag(NSSoapEnvelope, "Body")
+    @Tag("soap:Body", NSSoapEnvelope)
     var body = OutBody()
 }
 
@@ -145,7 +145,7 @@ class InSystem : Parameter() {
 }
 
 class InHeader {
-    @Tag(NSIn, "in:system")
+    @Tag("in:system", NSIn)
     var system = InSystem()
 }
 
@@ -167,17 +167,17 @@ class InBusiness : Parameter() {
 }
 
 class InBody {
-    @Tag(NSIn, "in:business")
+    @Tag("in:business", NSIn)
     var business = InBusiness()
 }
 
 class InEnvelop {
-    @Property("soap:encodingStyle")
+    @Property("soap:encodingStyle", NSSoapEnvelope)
     val encodingStyle = "http://schemas.xmlsoap.org/soap/encoding/"
 
-    @Tag(NSSoapEnvelope, "soap:Header")
+    @Tag("soap:Header", NSSoapEnvelope)
     var header = InHeader()
 
-    @Tag(NSSoapEnvelope, "soap:Body")
+    @Tag("soap:Body", NSSoapEnvelope)
     var body = InBody()
 }

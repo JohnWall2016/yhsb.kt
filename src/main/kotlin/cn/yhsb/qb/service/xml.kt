@@ -1,6 +1,5 @@
 package cn.yhsb.qb.service
 
-
 import org.w3c.dom.*
 import org.xml.sax.InputSource
 import java.io.StringReader
@@ -14,7 +13,6 @@ import kotlin.reflect.*
 import kotlin.reflect.full.*
 import kotlin.reflect.jvm.jvmErasure
 
-
 fun NodeList.asSequence(): Sequence<Node> = sequence {
     for (i in 0 until this@asSequence.length) {
         yield(this@asSequence.item(i))
@@ -27,9 +25,9 @@ fun NamedNodeMap.asSequence(): Sequence<Node> = sequence {
     }
 }
 
-annotation class Property(val name: String)
+annotation class Property(val name: String = "", val namespace: String = "")
 annotation class Container(val itemClass: KClass<*>)
-annotation class Tag(val namespace: String, val localName: String)
+annotation class Tag(val name: String, val namespace: String = "")
 annotation class Ignore
 
 class ResultSet<T> : ArrayList<T>() {
@@ -77,7 +75,8 @@ open class Result {
             type.publicMemberProperties
                     .filterIsInstance<KMutableProperty<*>>()
                     .forEach { prop ->
-                        val name = prop.findAnnotation<Property>()?.name ?: prop.name
+                        var name = prop.findAnnotation<Property>()?.name ?: ""
+                        if (name == "") name = prop.name
                         when (prop.returnType.jvmErasure) {
                             String::class -> result[name]?.let { prop.setter.call(inst, it) }
                             ResultSet::class -> {
@@ -103,7 +102,8 @@ object XmlUtil {
         type.publicMemberProperties
                 .filterIsInstance<KMutableProperty1<Any, String>>()
                 .forEach { prop ->
-                    val name = prop.findAnnotation<Property>()?.name ?: prop.name
+                    var name = prop.findAnnotation<Property>()?.name ?: ""
+                    if (name == "") name = prop.name
                     val value = elem.getAttribute(name)
                     if (value != null) {
                         prop.set(inst, value)
@@ -125,7 +125,9 @@ object XmlUtil {
                     val an = prop.findAnnotation<Tag>()
                     var namespace = an?.namespace ?: ""
                     if (namespace == "") namespace = "*"
-                    var localName = an?.localName ?: ""
+                    var localName = an?.name ?: ""
+                    val index = localName.indexOf(":")
+                    if (index >= 0) localName = localName.substring(index + 1)
                     if (localName == "") localName = prop.name
 
                     elem.getElementsByTagNameNS(namespace, localName)
@@ -180,10 +182,16 @@ open class Parameter {
                     .forEach { prop ->
                         if (prop.findAnnotation<Ignore>() != null)
                             return@forEach
-                        val name = prop.findAnnotation<Property>()?.name ?: prop.name
+                        val ppt = prop.findAnnotation<Property>()
+                        var name = ppt?.name ?: ""
+                        if (name == "") name = prop.name
+                        val ns = ppt?.namespace
                         val value = prop.get(param).toString()
                         elem.appendChild(doc.createElement("para").apply {
-                            setAttribute(name, value)
+                            if (ns.isNullOrEmpty())
+                                setAttribute(name, value)
+                            else
+                                setAttributeNS(ns, name, value)
                         })
                     }
             return elem
@@ -203,16 +211,26 @@ fun <T : Any> Document.toXmlElement(obj: T, tagName: String, namespace: String? 
                 if (prop.findAnnotation<Ignore>() != null)
                     return@forEach
                 prop.get(obj)?.let {
-                    val tag = prop.findAnnotation<Tag>()
-                    val tnamespace = tag?.namespace
-                    val tname = tag?.localName ?: prop.name
-                    elem.appendChild(
-                            if (prop.returnType.isSubtypeOf(Parameter.type)) {
-                                Parameter.toXmlElement(this, it as Parameter, tname, tnamespace)
-                            } else {
-                                this@toXmlElement.toXmlElement(it, tname, tnamespace)
-                            }
-                    )
+                    val ppt = prop.findAnnotation<Property>()
+                    if (ppt != null && prop.returnType.jvmErasure == String::class) {
+                        val ns = ppt.namespace
+                        val name = if (ppt.name == "") prop.name else ppt.name
+                        if (ns == "")
+                            elem.setAttribute(name, prop.get(obj) as String)
+                        else
+                            elem.setAttributeNS(ns, name, prop.get(obj) as String)
+                    } else {
+                        val tag = prop.findAnnotation<Tag>()
+                        val tnamespace = tag?.namespace
+                        val tname = tag?.name ?: prop.name
+                        elem.appendChild(
+                                if (prop.returnType.isSubtypeOf(Parameter.type)) {
+                                    Parameter.toXmlElement(this, it as Parameter, tname, tnamespace)
+                                } else {
+                                    this@toXmlElement.toXmlElement(it, tname, tnamespace)
+                                }
+                        )
+                    }
                 }
             }
     return elem
