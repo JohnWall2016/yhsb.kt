@@ -126,7 +126,7 @@ class XmlTest {
          */
 
         val env = InEnvelop()
-        val doc = XmlUtil.xmlDocument(env, "Envelope", NSSoapEnvelope)
+        val doc = XmlUtil.xmlDocument(env, "soap:Envelope", NSSoapEnvelope)
         println(doc.transfromToString())
     }
 }
@@ -145,7 +145,7 @@ class InSystem : Parameter() {
 }
 
 class InHeader {
-    @Tag(NSIn, "system")
+    @Tag(NSIn, "in:system")
     var system = InSystem()
 }
 
@@ -167,14 +167,17 @@ class InBusiness : Parameter() {
 }
 
 class InBody {
-    @Tag(NSIn, "business")
+    @Tag(NSIn, "in:business")
     var business = InBusiness()
 }
 
 class InEnvelop {
-    @Tag(NSSoapEnvelope, "Header")
+    @Property("soap:encodingStyle")
+    val encodingStyle = "http://schemas.xmlsoap.org/soap/encoding/"
+
+    @Tag(NSSoapEnvelope, "soap:Header")
     var header = InHeader()
 
-    @Tag(NSSoapEnvelope, "Body")
+    @Tag(NSSoapEnvelope, "soap:Body")
     var body = InBody()
 }

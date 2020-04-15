@@ -6,6 +6,7 @@ import org.xml.sax.InputSource
 import java.io.StringReader
 import java.io.StringWriter
 import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.transform.OutputKeys
 import javax.xml.transform.TransformerFactory
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
@@ -73,8 +74,7 @@ open class Result {
                         }
                     }
             val inst = type.createInstance()
-            type.memberProperties
-                    .filter { it.visibility == KVisibility.PUBLIC }
+            type.publicMemberProperties
                     .filterIsInstance<KMutableProperty<*>>()
                     .forEach { prop ->
                         val name = prop.findAnnotation<Property>()?.name ?: prop.name
@@ -100,8 +100,7 @@ open class Result {
 object XmlUtil {
     fun <T : Any> elementToObject(elem: Element, type: KClass<T>): T {
         val inst = type.createInstance()
-        type.memberProperties
-                .filter { it.visibility == KVisibility.PUBLIC }
+        type.publicMemberProperties
                 .filterIsInstance<KMutableProperty1<Any, String>>()
                 .forEach { prop ->
                     val name = prop.findAnnotation<Property>()?.name ?: prop.name
@@ -117,8 +116,7 @@ object XmlUtil {
 
     fun <T : Any> fromXmlElement(elem: Element, type: KClass<T>): T {
         val inst = type.createInstance()
-        type.memberProperties
-                .filter { it.visibility == KVisibility.PUBLIC }
+        type.publicMemberProperties
                 .filterIsInstance<KMutableProperty<*>>()
                 .forEach { prop ->
                     if (prop.findAnnotation<Ignore>() != null)
@@ -177,8 +175,7 @@ open class Parameter {
                 doc.createElement(tagName)
             else
                 doc.createElementNS(namespace, tagName)
-            param::class.memberProperties
-                    .filter { it.visibility == KVisibility.PUBLIC }
+            param::class.publicMemberProperties
                     .filterIsInstance<KProperty1<Any, Any>>()
                     .forEach { prop ->
                         if (prop.findAnnotation<Ignore>() != null)
@@ -197,10 +194,10 @@ open class Parameter {
 fun <T : Any> Document.toXmlElement(obj: T, tagName: String, namespace: String? = null): Element {
     val elem = if (namespace == null)
         this.createElement(tagName)
-    else
+    else {
         this.createElementNS(namespace, tagName)
-    obj::class.memberProperties
-            .filter { it.visibility == KVisibility.PUBLIC }
+    }
+    obj::class.publicMemberProperties
             .filterIsInstance<KProperty1<Any, Any?>>()
             .forEach { prop ->
                 if (prop.findAnnotation<Ignore>() != null)
@@ -224,7 +221,33 @@ fun <T : Any> Document.toXmlElement(obj: T, tagName: String, namespace: String? 
 fun Document.transfromToString(): String {
     return StringWriter().let {
         TransformerFactory.newInstance().newTransformer()
+                .apply {
+                    setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes")
+                }
                 .transform(DOMSource(this), StreamResult(it))
         it.buffer.toString()
     }
 }
+
+private val javaDeclaredPropertiesMap = mutableMapOf<KClass<*>, List<KProperty1<*, *>>>()
+
+val <T : Any> KClass<T>.javaDeclaredProperties: List<KProperty1<*, *>>
+    get() {
+        val ret = javaDeclaredPropertiesMap[this]
+        if (ret != null) return ret
+
+        val fields = java.declaredFields
+        val properties = Array<KProperty1<*, *>?>(fields.size) { null }
+        memberProperties.forEach { prop ->
+            val index = fields.indexOfFirst {
+                it.name == prop.name
+            }
+            if (index >= 0) properties[index] = prop
+        }
+        return properties.filterNotNull().apply {
+            javaDeclaredPropertiesMap[this@javaDeclaredProperties] = this
+        }
+    }
+
+val <T : Any> KClass<T>.publicMemberProperties: Sequence<KProperty1<*, *>>
+    get() = this.javaDeclaredProperties.filter { it.visibility == KVisibility.PUBLIC }.asSequence()
