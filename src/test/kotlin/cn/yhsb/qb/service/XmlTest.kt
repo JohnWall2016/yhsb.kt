@@ -25,7 +25,7 @@ class Business : Result() {
     var querySql = ""
 }
 
-class Header : Result() {
+class OutHeader : Result() {
     var sessionID = ""
     var message = ""
 }
@@ -33,17 +33,17 @@ class Header : Result() {
 const val NSOut = "http://www.molss.gov.cn/"
 const val NSSoapEnvelope = "http://schemas.xmlsoap.org/soap/envelope/"
 
-class Body {
+class OutBody {
     @Tag(NSOut, "business")
     var business = Business()
 }
 
-class Envelope {
+class OutEnvelope {
     @Tag(NSSoapEnvelope, "Header")
-    var header = Header()
+    var header = OutHeader()
 
     @Tag(NSSoapEnvelope, "Body")
-    var body = Body()
+    var body = OutBody()
 }
 
 class XmlTest {
@@ -91,7 +91,7 @@ class XmlTest {
   </soap:Body>
 </soap:Envelope>"""
 
-        val env = XmlUtil.fromXml<Envelope>(xml)
+        val env = XmlUtil.fromXml<OutEnvelope>(xml)
         println(env)
         println(env.header.sessionID)
         println(env.header.message)
@@ -100,4 +100,81 @@ class XmlTest {
             println("${it.name} ${it.idcard} ${it.rown}")
         }
     }
+
+    @Test
+    fun testXml3() {
+        /*
+        val xml = """<?xml version="1.0" encoding="GBK"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" soap:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+  <soap:Header>
+    <in:system xmlns:in="http://www.molss.gov.cn/">
+      <para usr="abc"/>
+      <para pwd="YLZ_A2ASSDFDFDSS"/>
+      <para funid="F00.01.03"/>
+    </in:system>
+  </soap:Header>
+  <soap:Body>
+    <in:business xmlns:in="http://www.molss.gov.cn/">
+      <para startrow="1"/>
+      <para row_count="-1"/>
+      <para pagesize="500"/>
+      <para clientsql="( aac002 = &apos;430302195806251012&apos;)"/>
+      <para functionid="F27.06"/>
+    </in:business>
+  </soap:Body>
+</soap:Envelope>"""
+         */
+
+        val env = InEnvelop()
+        val doc = XmlUtil.xmlDocument(env, "Envelope", NSSoapEnvelope)
+        println(doc.transfromToString())
+    }
+}
+
+const val NSIn = "http://www.molss.gov.cn/"
+
+class InSystem : Parameter() {
+    @Property("usr")
+    var user = ""
+
+    @Property("pwd")
+    var password = ""
+
+    @Property("funid")
+    var funID = ""
+}
+
+class InHeader {
+    @Tag(NSIn, "system")
+    var system = InSystem()
+}
+
+class InBusiness : Parameter() {
+    @Property("startrow")
+    var startRow = ""
+
+    @Property("row_count")
+    var rowCount = ""
+
+    @Property("pagesize")
+    var pageSize = ""
+
+    @Property("clientsql")
+    var clientSql = ""
+
+    @Property("functionid")
+    var functionID = ""
+}
+
+class InBody {
+    @Tag(NSIn, "business")
+    var business = InBusiness()
+}
+
+class InEnvelop {
+    @Tag(NSSoapEnvelope, "Header")
+    var header = InHeader()
+
+    @Tag(NSSoapEnvelope, "Body")
+    var body = InBody()
 }

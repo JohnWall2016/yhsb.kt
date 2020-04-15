@@ -5,7 +5,6 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KVisibility
 import kotlin.reflect.full.*
-import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.javaType
 import kotlin.reflect.jvm.jvmErasure
 

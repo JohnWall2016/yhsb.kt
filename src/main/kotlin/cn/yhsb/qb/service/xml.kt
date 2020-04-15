@@ -4,11 +4,12 @@ package cn.yhsb.qb.service
 import org.w3c.dom.*
 import org.xml.sax.InputSource
 import java.io.StringReader
+import java.io.StringWriter
 import javax.xml.parsers.DocumentBuilderFactory
-import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty
-import kotlin.reflect.KMutableProperty1
-import kotlin.reflect.KVisibility
+import javax.xml.transform.TransformerFactory
+import javax.xml.transform.dom.DOMSource
+import javax.xml.transform.stream.StreamResult
+import kotlin.reflect.*
 import kotlin.reflect.full.*
 import kotlin.reflect.jvm.jvmErasure
 
@@ -156,4 +157,74 @@ object XmlUtil {
             .newDocumentBuilder()
             .parse(InputSource(StringReader(xml)))
             .documentElement
+
+    fun xmlDocument(obj: Any, tagName: String, namespace: String?): Document {
+        return DocumentBuilderFactory.newInstance()
+                .apply { isNamespaceAware = true }
+                .newDocumentBuilder()
+                .newDocument().apply {
+                    appendChild(toXmlElement(obj, tagName, namespace))
+                }
+    }
+}
+
+open class Parameter {
+    companion object {
+        val type = Parameter::class.createType()
+
+        fun <T : Parameter> toXmlElement(doc: Document, param: T, tagName: String, namespace: String? = null): Element {
+            val elem = if (namespace.isNullOrEmpty())
+                doc.createElement(tagName)
+            else
+                doc.createElementNS(namespace, tagName)
+            param::class.memberProperties
+                    .filter { it.visibility == KVisibility.PUBLIC }
+                    .filterIsInstance<KProperty1<Any, Any>>()
+                    .forEach { prop ->
+                        if (prop.findAnnotation<Ignore>() != null)
+                            return@forEach
+                        val name = prop.findAnnotation<Property>()?.name ?: prop.name
+                        val value = prop.get(param).toString()
+                        elem.appendChild(doc.createElement("para").apply {
+                            setAttribute(name, value)
+                        })
+                    }
+            return elem
+        }
+    }
+}
+
+fun <T : Any> Document.toXmlElement(obj: T, tagName: String, namespace: String? = null): Element {
+    val elem = if (namespace == null)
+        this.createElement(tagName)
+    else
+        this.createElementNS(namespace, tagName)
+    obj::class.memberProperties
+            .filter { it.visibility == KVisibility.PUBLIC }
+            .filterIsInstance<KProperty1<Any, Any?>>()
+            .forEach { prop ->
+                if (prop.findAnnotation<Ignore>() != null)
+                    return@forEach
+                prop.get(obj)?.let {
+                    val tag = prop.findAnnotation<Tag>()
+                    val tnamespace = tag?.namespace
+                    val tname = tag?.localName ?: prop.name
+                    elem.appendChild(
+                            if (prop.returnType.isSubtypeOf(Parameter.type)) {
+                                Parameter.toXmlElement(this, it as Parameter, tname, tnamespace)
+                            } else {
+                                this@toXmlElement.toXmlElement(it, tname, tnamespace)
+                            }
+                    )
+                }
+            }
+    return elem
+}
+
+fun Document.transfromToString(): String {
+    return StringWriter().let {
+        TransformerFactory.newInstance().newTransformer()
+                .transform(DOMSource(this), StreamResult(it))
+        it.buffer.toString()
+    }
 }
