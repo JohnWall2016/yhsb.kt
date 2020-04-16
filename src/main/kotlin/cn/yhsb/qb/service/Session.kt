@@ -7,7 +7,9 @@ import cn.yhsb.qb.service.XmlUtil.populateObject
 import cn.yhsb.qb.service.XmlUtil.rootElement
 import java.nio.charset.Charset
 
-class Session(host: String, port: Int, private val userID: String, private val password: String) : HttpSocket(host, port, Charset.forName("GBK")) {
+class Session(host: String, port: Int, private val userID: String, private val password: String)
+    : HttpSocket(host, port, Charset.forName("GBK")) {
+
     private val cookies = mutableMapOf<String, String>()
 
     private fun createRequest(): HttpRequest {
@@ -78,12 +80,12 @@ class Session(host: String, port: Int, private val userID: String, private val p
     }
 
     companion object {
-        fun new(userID: String = "002"): Session =
+        fun new(userID: String = "sqb"): Session =
                 Session(Config.Service.host, Config.Service.port,
                         (Config.Service.users[userID] ?: error("invalid user")).id,
                         (Config.Service.users[userID] ?: error("invalid user")).password)
 
-        fun <T> autoLogin(userID: String = "002", action: Session.() -> T): T {
+        fun <T> autoLogin(userID: String = "sqb", action: Session.() -> T): T {
             new(userID).use {
                 it.login()
                 try {
