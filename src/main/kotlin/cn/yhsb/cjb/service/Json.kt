@@ -1,5 +1,6 @@
 package cn.yhsb.cjb.service
 
+import cn.yhsb.base.CustomField
 import com.google.gson.*
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
@@ -7,17 +8,7 @@ import java.lang.reflect.Type
 
 interface JsonAdapter<T> : JsonSerializer<T>, JsonDeserializer<T>
 
-open class JsonField {
-    var value: String? = null
-        protected set
-
-    open val name: String
-        get() = "未知值: $value"
-
-    override fun toString(): String {
-        return name
-    }
-
+open class JsonField : CustomField() {
     class Adapter : JsonAdapter<JsonField> {
         override fun serialize(src: JsonField, typeOfSrc: Type,
                                context: JsonSerializationContext): JsonElement {

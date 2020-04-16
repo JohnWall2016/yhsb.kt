@@ -13,7 +13,7 @@ class Session(host: String, port: Int, private val userID: String, private val p
     private val cookies = mutableMapOf<String, String>()
 
     private fun createRequest(): HttpRequest {
-        val request = HttpRequest("/sbzhpt/MainServlet", "POST").apply {
+        val request = HttpRequest("/sbzhpt/MainServlet", "POST", charset).apply {
             addHeader("SOAPAction", "mainservlet")
             addHeader("Content-Type", "text/html;charset=GBK")
             addHeader("Host", url)
@@ -55,10 +55,13 @@ class Session(host: String, port: Int, private val userID: String, private val p
 
     fun sendService(param: ParameterWithFunID) = request(toService(param))
 
-    fun <T : Result, S : Result> OutEnvelope<T, S>.fromResult(xml: String) =
-            rootElement(xml).populateObject(this)
+    fun <T : Result, S : Result> populateResult(xml: String, result: T, header: S): T =
+            rootElement(xml).populateObject(OutEnvelope({header}, {result})).result
 
-    fun <T : Result, S : Result> OutEnvelope<T, S>.getResult() = fromResult(readBody())
+    fun <T : Result> populateResult(xml: String, result: T): T =
+            rootElement(xml).populateObject(OutEnvelope({OutHeader()}, {result})).result
+
+    fun <T : Result> fetchResult(result: T): T = populateResult(readBody(), result)
 
     fun login(): String {
         sendService(Login())
@@ -72,8 +75,7 @@ class Session(host: String, port: Int, private val userID: String, private val p
                 }
             }
         }
-        readBody(header)
-        return readBody()
+        return readBody(header)
     }
 
     fun logout() {

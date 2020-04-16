@@ -2,6 +2,7 @@ package cn.yhsb.base
 
 import picocli.CommandLine
 import java.lang.StringBuilder
+import kotlin.reflect.full.createType
 
 
 @CommandLine.Command(mixinStandardHelpOptions = true)
@@ -65,5 +66,20 @@ fun String.padRight(width: Int, padChar: Char = ' ',
         b.toString()
     } else {
         this
+    }
+}
+
+open class CustomField {
+    var value: String? = null
+
+    open val name: String
+        get() = "未知值: $value"
+
+    override fun toString(): String {
+        return name
+    }
+
+    companion object {
+        val type = CustomField::class.createType()
     }
 }

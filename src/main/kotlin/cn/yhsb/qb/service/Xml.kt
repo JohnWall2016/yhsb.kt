@@ -1,10 +1,13 @@
 package cn.yhsb.qb.service
 
+import cn.yhsb.base.CustomField
+import cn.yhsb.cjb.service.Jsonable
 import cn.yhsb.qb.service.Result.Companion.populateResult
 import org.w3c.dom.*
 import org.xml.sax.InputSource
 import java.io.StringReader
 import java.io.StringWriter
+import java.lang.reflect.Field
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.transform.OutputKeys
 import javax.xml.transform.TransformerFactory
@@ -46,7 +49,7 @@ class ResultSet<T> : ArrayList<T>() {
     }
 }
 
-open class Result {
+open class Result : Jsonable() {
     companion object {
         val type = Result::class.createType()
 
@@ -55,7 +58,6 @@ open class Result {
             val resultSet = mutableMapOf<String, Element>()
             elem.childNodes.asSequence()
                     .filterIsInstance<Element>().forEach { child ->
-                        // println("${child.tagName}|${child.localName}")
                         when (child.tagName) {
                             "result" -> {
                                 child.attributes.asSequence()
@@ -100,7 +102,6 @@ open class Result {
             val resultSet = mutableMapOf<String, Element>()
             childNodes.asSequence()
                     .filterIsInstance<Element>().forEach { child ->
-                        // println("${child.tagName}|${child.localName}")
                         when (child.tagName) {
                             "result" -> {
                                 child.attributes.asSequence()
@@ -142,13 +143,26 @@ object XmlUtil {
     fun <T : Any> elementToObject(elem: Element, type: KClass<T>): T {
         val inst = type.createInstance()
         type.publicMemberProperties
-                .filterIsInstance<KMutableProperty1<Any, String>>()
+                .filterIsInstance<KMutableProperty1<Any, Any>>()
                 .forEach { prop ->
                     var name = prop.findAnnotation<Property>()?.name ?: ""
                     if (name == "") name = prop.name
                     val value = elem.getAttribute(name)
                     if (value != null) {
-                        prop.set(inst, value)
+                        if (prop.returnType.isSubtypeOf(CustomField.type)) {
+                            val f = prop.get(inst) as? CustomField
+                            if (f != null) {
+                                f.value = value
+                            } else {
+                                (prop.returnType.jvmErasure
+                                        .createInstance() as? CustomField)?.let {
+                                    it.value = value
+                                    prop.set(inst, it)
+                                }
+                            }
+                        } else if (prop.returnType.jvmErasure == String::class) {
+                            prop.set(inst, value)
+                        }
                     }
                 }
         return inst
@@ -194,7 +208,7 @@ object XmlUtil {
 
     inline fun <reified T : Any> fromXml(xml: String): T = fromXmlElement(rootElement(xml), T::class)
 
-    fun Element.populateObject(obj: Any) {
+    fun <T : Any> Element.populateObject(obj: T): T {
         obj::class.publicMemberProperties
                 .filterIsInstance<KMutableProperty<*>>()
                 .forEach { prop ->
@@ -232,6 +246,7 @@ object XmlUtil {
                                 }
                             }
                 }
+        return obj
     }
 
     fun rootElement(xml: String): Element = DocumentBuilderFactory.newInstance()
@@ -250,7 +265,7 @@ object XmlUtil {
     }
 }
 
-open class Parameter {
+open class Parameter : Jsonable() {
     companion object {
         val type = Parameter::class.createType()
 
@@ -338,7 +353,12 @@ val <T : Any> KClass<T>.javaDeclaredProperties: List<KProperty1<*, *>>
         val ret = javaDeclaredPropertiesMap[this]
         if (ret != null) return ret
 
-        val fields = java.declaredFields
+        var jclass = java as Class<*>
+        val fields = mutableListOf<Field>()
+        while (jclass != Object::class.java) {
+            fields.addAll(jclass.declaredFields)
+            jclass = jclass.superclass as Class<*>
+        }
         val properties = Array<KProperty1<*, *>?>(fields.size) { null }
         memberProperties.forEach { prop ->
             val index = fields.indexOfFirst {

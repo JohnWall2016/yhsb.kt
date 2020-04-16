@@ -9,7 +9,7 @@ import kotlin.sequences.iterator
 open class HttpSocket(
         host: String,
         port: Int,
-        private val charset: Charset = Charsets.UTF_8
+        val charset: Charset = Charsets.UTF_8
 ) : Closeable {
     private val socket = Socket(host, port)
     private val ostream = socket.getOutputStream()

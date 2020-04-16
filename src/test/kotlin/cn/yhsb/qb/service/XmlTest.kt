@@ -2,51 +2,103 @@ package cn.yhsb.qb.service
 
 import org.junit.Test
 
-class Sncbry {
-    @Property("aac003")
-    var name = ""
-
-    @Property("aac002")
-    var idcard = ""
-
-    var rown = ""
-}
-
-class Business : Result() {
-    var result = ""
-
-    @Property("querylist")
-    var queryList: ResultSet<Sncbry> = ResultSet()
-
-    @Property("row_count")
-    var rowCount = ""
-
-    @Property("querysql")
-    var querySql = ""
-}
-
-class OutHeader : Result() {
-    var sessionID = ""
-    var message = ""
-}
-
-const val NSOut = "http://www.molss.gov.cn/"
-const val NSSoapEnvelope = "http://schemas.xmlsoap.org/soap/envelope/"
-
-class OutBody {
-    @Tag("out:business", NSOut)
-    var business = Business()
-}
-
-class OutEnvelope {
-    @Tag("soap:Header", NSSoapEnvelope)
-    var header = OutHeader()
-
-    @Tag("soap:Body", NSSoapEnvelope)
-    var body = OutBody()
-}
-
 class XmlTest {
+
+    class Sncbry {
+        @Property("aac003")
+        var name = ""
+
+        @Property("aac002")
+        var idcard = ""
+
+        var rown = ""
+    }
+
+    class Business : Result() {
+        var result = ""
+
+        @Property("querylist")
+        var queryList: ResultSet<Sncbry> = ResultSet()
+
+        @Property("row_count")
+        var rowCount = ""
+
+        @Property("querysql")
+        var querySql = ""
+    }
+
+    class OutHeader : Result() {
+        var sessionID = ""
+        var message = ""
+    }
+
+    val nsOut = "http://www.molss.gov.cn/"
+    val nsSoapEnvelope = "http://schemas.xmlsoap.org/soap/envelope/"
+
+    class OutBody {
+        @Tag("out:business", NSOut)
+        var business = Business()
+    }
+
+    class OutEnvelope {
+        @Tag("soap:Header", NSSoapEnvelope)
+        var header = OutHeader()
+
+        @Tag("soap:Body", NSSoapEnvelope)
+        var body = OutBody()
+    }
+
+    val nsIn = "http://www.molss.gov.cn/"
+
+    class InSystem : Parameter() {
+        @Property("usr")
+        var user = ""
+
+        @Property("pwd")
+        var password = ""
+
+        @Property("funid")
+        var funID = ""
+    }
+
+    class InHeader {
+        @Tag("in:system", NSIn)
+        var system = InSystem()
+    }
+
+    class InBusiness : Parameter() {
+        @Property("startrow")
+        var startRow = ""
+
+        @Property("row_count")
+        var rowCount = ""
+
+        @Property("pagesize")
+        var pageSize = ""
+
+        @Property("clientsql")
+        var clientSql = ""
+
+        @Property("functionid")
+        var functionID = ""
+    }
+
+    class InBody {
+        @Tag("in:business", NSIn)
+        var business = InBusiness()
+    }
+
+    class InEnvelop {
+        @Property("soap:encodingStyle", NSSoapEnvelope)
+        val encodingStyle = "http://schemas.xmlsoap.org/soap/encoding/"
+
+        @Tag("soap:Header", NSSoapEnvelope)
+        var header = InHeader()
+
+        @Tag("soap:Body", NSSoapEnvelope)
+        var body = InBody()
+    }
+
     @Test
     fun testXml() {
         val xml = """<?xml version="1.0" encoding="GBK"?>
@@ -126,58 +178,7 @@ class XmlTest {
          */
 
         val env = InEnvelop()
-        val doc = XmlUtil.xmlDocument(env, "soap:Envelope", NSSoapEnvelope)
+        val doc = XmlUtil.xmlDocument(env, "soap:Envelope", nsSoapEnvelope)
         println(doc.transfromToString())
     }
-}
-
-const val NSIn = "http://www.molss.gov.cn/"
-
-class InSystem : Parameter() {
-    @Property("usr")
-    var user = ""
-
-    @Property("pwd")
-    var password = ""
-
-    @Property("funid")
-    var funID = ""
-}
-
-class InHeader {
-    @Tag("in:system", NSIn)
-    var system = InSystem()
-}
-
-class InBusiness : Parameter() {
-    @Property("startrow")
-    var startRow = ""
-
-    @Property("row_count")
-    var rowCount = ""
-
-    @Property("pagesize")
-    var pageSize = ""
-
-    @Property("clientsql")
-    var clientSql = ""
-
-    @Property("functionid")
-    var functionID = ""
-}
-
-class InBody {
-    @Tag("in:business", NSIn)
-    var business = InBusiness()
-}
-
-class InEnvelop {
-    @Property("soap:encodingStyle", NSSoapEnvelope)
-    val encodingStyle = "http://schemas.xmlsoap.org/soap/encoding/"
-
-    @Tag("soap:Header", NSSoapEnvelope)
-    var header = InHeader()
-
-    @Tag("soap:Body", NSSoapEnvelope)
-    var body = InBody()
 }
