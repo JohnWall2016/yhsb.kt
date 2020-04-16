@@ -1,5 +1,6 @@
 package cn.yhsb.qb.service
 
+import cn.yhsb.qb.service.Result.Companion.populateResult
 import org.w3c.dom.*
 import org.xml.sax.InputSource
 import java.io.StringReader
@@ -93,6 +94,47 @@ open class Result {
         }
 
         inline fun <reified T : Result> fromXmlElement(e: Element): T = fromXmlElement(e, T::class)
+
+        fun <T : Result> Element.populateResult(obj: T) {
+            val result = mutableMapOf<String, String>()
+            val resultSet = mutableMapOf<String, Element>()
+            childNodes.asSequence()
+                    .filterIsInstance<Element>().forEach { child ->
+                        // println("${child.tagName}|${child.localName}")
+                        when (child.tagName) {
+                            "result" -> {
+                                child.attributes.asSequence()
+                                        .filterIsInstance<Attr>()
+                                        .forEach {
+                                            result[it.name] = it.value
+                                        }
+                            }
+                            "resultset" -> {
+                                val name = child.getAttribute("name")
+                                if (name != null) {
+                                    resultSet[name] = child
+                                }
+                            }
+                        }
+                    }
+            obj::class.publicMemberProperties
+                    .filterIsInstance<KMutableProperty<*>>()
+                    .forEach { prop ->
+                        var name = prop.findAnnotation<Property>()?.name ?: ""
+                        if (name == "") name = prop.name
+                        when (prop.returnType.jvmErasure) {
+                            String::class -> result[name]?.let { prop.setter.call(obj, it) }
+                            ResultSet::class -> {
+                                resultSet[name]?.let { elem ->
+                                    prop.returnType.arguments
+                                            .firstOrNull()?.type?.jvmErasure?.let {
+                                                prop.setter.call(obj, ResultSet.fromXmlElement(elem, it))
+                                            }
+                                }
+                            }
+                        }
+                    }
+        }
     }
 }
 
@@ -151,6 +193,46 @@ object XmlUtil {
     inline fun <reified T : Any> fromXmlElement(elem: Element): T = fromXmlElement(elem, T::class)
 
     inline fun <reified T : Any> fromXml(xml: String): T = fromXmlElement(rootElement(xml), T::class)
+
+    fun Element.populateObject(obj: Any) {
+        obj::class.publicMemberProperties
+                .filterIsInstance<KMutableProperty<*>>()
+                .forEach { prop ->
+                    if (prop.findAnnotation<Ignore>() != null)
+                        return@forEach
+
+                    val an = prop.findAnnotation<Tag>()
+                    var namespace = an?.namespace ?: ""
+                    if (namespace == "") namespace = "*"
+                    var localName = an?.name ?: ""
+                    val index = localName.indexOf(":")
+                    if (index >= 0) localName = localName.substring(index + 1)
+                    if (localName == "") localName = prop.name
+
+                    getElementsByTagNameNS(namespace, localName)
+                            .asSequence()
+                            .filterIsInstance<Element>()
+                            .firstOrNull()
+                            ?.let {
+                                if (prop.returnType.isSubtypeOf(Result.type)) {
+                                    val o = prop.getter.call(obj) as? Result
+                                    @Suppress("UNCHECKED_CAST")
+                                    val c = prop.returnType.jvmErasure as KClass<Result>
+                                    if (o != null)
+                                        it.populateResult(o)
+                                    else
+                                        prop.setter.call(obj, Result.fromXmlElement(it, c))
+                                } else {
+                                    val o = prop.getter.call(obj)
+                                    if (o != null)
+                                        it.populateObject(o)
+                                    else
+                                        prop.setter.call(obj,
+                                                fromXmlElement(it, prop.returnType.jvmErasure))
+                                }
+                            }
+                }
+    }
 
     fun rootElement(xml: String): Element = DocumentBuilderFactory.newInstance()
             .apply { isNamespaceAware = true }
@@ -236,13 +318,15 @@ fun <T : Any> Document.toXmlElement(obj: T, tagName: String, namespace: String? 
     return elem
 }
 
-fun Document.transfromToString(): String {
+fun Document.transfromToString(declare: String? = null): String {
     return StringWriter().let {
+        if (declare != null) it.write(declare)
         TransformerFactory.newInstance().newTransformer()
                 .apply {
-                    setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes")
-                }
-                .transform(DOMSource(this), StreamResult(it))
+                    if (declare != null) {
+                        setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes")
+                    }
+                }.transform(DOMSource(this), StreamResult(it))
         it.buffer.toString()
     }
 }
