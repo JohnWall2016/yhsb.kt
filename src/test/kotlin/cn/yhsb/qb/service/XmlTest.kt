@@ -1,5 +1,7 @@
 package cn.yhsb.qb.service
 
+import cn.yhsb.base.GenericClass
+import cn.yhsb.cjb.service.Jsonable
 import org.junit.Test
 
 class XmlTest {
@@ -46,6 +48,19 @@ class XmlTest {
 
         @Tag("soap:Body", NSSoapEnvelope)
         var body = OutBody()
+    }
+
+    class OutBody2<B> {
+        @Tag("out:business", NSOut)
+        var business: B? = null
+    }
+
+    class OutEnvelope2<H, B> : Jsonable() {
+        @Tag("soap:Header", NSSoapEnvelope)
+        var header: H? = null
+
+        @Tag("soap:Body", NSSoapEnvelope)
+        var body: OutBody2<B>? = null
     }
 
     val nsIn = "http://www.molss.gov.cn/"
@@ -113,7 +128,8 @@ class XmlTest {
  where a.aac001 = b.aac001) where ( aac002 = &apos;43030219XXXXXXXX&apos;) and 1=1) row_ where rownum &lt;(501)) where rown &gt;=(1) " />
 </out:business>"""
 
-        val rs = Result.fromXmlElement<Business>(XmlUtil.rootElement(xml))
+        val rs = Result.fromXmlElement(XmlUtil.rootElement(xml),
+                GenericClass<Business>(Business::class))
         println(rs.rowCount)
         println(rs.querySql)
         rs.queryList.forEach {
@@ -151,6 +167,10 @@ class XmlTest {
         env.body.business.queryList.forEach {
             println("${it.name} ${it.idcard} ${it.rown}")
         }
+
+        val env2 = XmlUtil.fromXml<OutEnvelope2<OutHeader, Business>>(
+                xml, OutHeader::class, Business::class)
+        println(env2)
     }
 
     @Test

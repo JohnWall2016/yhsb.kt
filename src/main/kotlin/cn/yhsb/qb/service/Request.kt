@@ -1,6 +1,7 @@
 package cn.yhsb.qb.service
 
 import cn.yhsb.base.CustomField
+import cn.yhsb.base.GenericClass
 import cn.yhsb.cjb.service.Jsonable
 
 const val NSOut = "http://www.molss.gov.cn/"
@@ -32,21 +33,32 @@ class InBody(business: Parameter) {
 
 //////////////////////////////////////////////////////////////
 
-class OutEnvelope<T : Result, S : Result>(
-        headerInit: () -> T,
-        businessInit: () -> S) {
+class OutEnvelope<T : Result, S : Result> {
     @Tag("soap:Header", NSSoapEnvelope)
-    var header = headerInit()
+    var header: T? = null
 
     @Tag("soap:Body", NSSoapEnvelope)
-    var body = OutBody(businessInit)
+    var body: OutBody<S>? = null
 
-    val result: S get() = body.business
+    @Ignore
+    val result: S? get() = body?.business
+
+    @Ignore
+    var xml: String = ""
+
+    companion object {
+        inline fun <reified T : Result, reified S : Result> fromXml(xml: String): OutEnvelope<T, S> {
+            return XmlUtil.fromXml<OutEnvelope<T, S>>(
+                    xml, GenericClass(OutEnvelope::class, T::class, S::class)).apply {
+                this.xml = xml
+            }
+        }
+    }
 }
 
-class OutBody<T : Result>(businessInit: () -> T) {
+class OutBody<T : Result> {
     @Tag("out:business", NSOut)
-    var business = businessInit()
+    var business: T? = null
 }
 
 //////////////////////////////////////////////////////////////

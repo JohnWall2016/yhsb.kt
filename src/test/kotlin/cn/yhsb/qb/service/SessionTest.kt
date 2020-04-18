@@ -8,7 +8,7 @@ class SessionTest {
         Session.new().use {
             val ret = it.login()
             println(ret)
-            it.populateResult(ret, Login.Result()).let(::println)
+            it.fromResult<Login.Result>(ret).let(::println)
         }
     }
 
@@ -16,11 +16,13 @@ class SessionTest {
     fun testSncbry() {
         Session.autoLogin {
             sendService(SncbryQuery("430302195806251012"))
-            val result = fetchResult(SncbryQuery.Result())
+            val result = getResult<SncbryQuery.Result>()
             println(result)
-            for (info in result.queryList)
-                println("${info.idcard} ${info.name} ${info.sbState} ${info.cbState} " +
-                        "${info.jfKind} ${info.agency} ${info.dwbh}")
+            if (result != null) {
+                for (info in result.queryList)
+                    println("${info.idcard} ${info.name} ${info.sbState} ${info.cbState} " +
+                            "${info.jfKind} ${info.agency} ${info.dwbh}")
+            }
         }
     }
 }

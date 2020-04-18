@@ -1,13 +1,12 @@
 package cn.yhsb.qb.service
 
 import cn.yhsb.base.CustomField
+import cn.yhsb.base.GenericClass
 import cn.yhsb.cjb.service.Jsonable
-import cn.yhsb.qb.service.Result.Companion.populateResult
 import org.w3c.dom.*
 import org.xml.sax.InputSource
 import java.io.StringReader
 import java.io.StringWriter
-import java.lang.reflect.Field
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.transform.OutputKeys
 import javax.xml.transform.TransformerFactory
@@ -36,16 +35,14 @@ annotation class Ignore
 
 class ResultSet<T> : ArrayList<T>() {
     companion object {
-        fun <T : Any> fromXmlElement(e: Element, subtype: KClass<T>): ResultSet<T> {
+        fun <T : Any> fromXmlElement(e: Element, gClass: GenericClass<T>): ResultSet<T> {
             val rs = ResultSet<T>()
             e.getElementsByTagName("row").asSequence()
                     .filterIsInstance<Element>().forEach {
-                        rs.add(XmlUtil.elementToObject(it, subtype))
+                        rs.add(XmlUtil.elementToObject(it, gClass))
                     }
             return rs
         }
-
-        inline fun <reified T : Any> fromXmlElement(e: Element): ResultSet<T> = fromXmlElement(e, T::class)
     }
 }
 
@@ -53,7 +50,7 @@ open class Result : Jsonable() {
     companion object {
         val type = Result::class.createType()
 
-        fun <T : Result> fromXmlElement(elem: Element, type: KClass<T>): T {
+        fun <T : Result> fromXmlElement(elem: Element, gClass: GenericClass<T>): T {
             val result = mutableMapOf<String, String>()
             val resultSet = mutableMapOf<String, Element>()
             elem.childNodes.asSequence()
@@ -74,19 +71,30 @@ open class Result : Jsonable() {
                             }
                         }
                     }
-            val inst = type.createInstance()
-            type.publicMemberProperties
-                    .filterIsInstance<KMutableProperty<*>>()
+            val inst = gClass.createInstance()
+            gClass.kClass.memberProperties
+                    .filter { it.visibility == KVisibility.PUBLIC }
+                    .filterIsInstance<KMutableProperty1<T, Any>>()
                     .forEach { prop ->
                         var name = prop.findAnnotation<Property>()?.name ?: ""
                         if (name == "") name = prop.name
                         when (prop.returnType.jvmErasure) {
-                            String::class -> result[name]?.let { prop.setter.call(inst, it) }
+                            String::class -> result[name]?.let { prop.set(inst, it) }
                             ResultSet::class -> {
                                 resultSet[name]?.let { elem ->
                                     prop.returnType.arguments
-                                            .firstOrNull()?.type?.jvmErasure?.let {
-                                                prop.setter.call(inst, ResultSet.fromXmlElement(elem, it))
+                                            .firstOrNull()?.type?.let {
+                                                // println(it)
+                                                val classifier = it.classifier
+                                                val subGClass = if (classifier is KTypeParameter) {
+                                                    gClass.resolveTypeParameter(classifier)
+                                                } else {
+                                                    // println(it.jvmErasure)
+                                                    GenericClass<Any>(it.jvmErasure)
+                                                }
+                                                if (subGClass != null)
+                                                    prop.set(inst,
+                                                            ResultSet.fromXmlElement(elem, subGClass))
                                             }
                                 }
                             }
@@ -94,56 +102,16 @@ open class Result : Jsonable() {
                     }
             return inst
         }
-
-        inline fun <reified T : Result> fromXmlElement(e: Element): T = fromXmlElement(e, T::class)
-
-        fun <T : Result> Element.populateResult(obj: T) {
-            val result = mutableMapOf<String, String>()
-            val resultSet = mutableMapOf<String, Element>()
-            childNodes.asSequence()
-                    .filterIsInstance<Element>().forEach { child ->
-                        when (child.tagName) {
-                            "result" -> {
-                                child.attributes.asSequence()
-                                        .filterIsInstance<Attr>()
-                                        .forEach {
-                                            result[it.name] = it.value
-                                        }
-                            }
-                            "resultset" -> {
-                                val name = child.getAttribute("name")
-                                if (name != null) {
-                                    resultSet[name] = child
-                                }
-                            }
-                        }
-                    }
-            obj::class.publicMemberProperties
-                    .filterIsInstance<KMutableProperty<*>>()
-                    .forEach { prop ->
-                        var name = prop.findAnnotation<Property>()?.name ?: ""
-                        if (name == "") name = prop.name
-                        when (prop.returnType.jvmErasure) {
-                            String::class -> result[name]?.let { prop.setter.call(obj, it) }
-                            ResultSet::class -> {
-                                resultSet[name]?.let { elem ->
-                                    prop.returnType.arguments
-                                            .firstOrNull()?.type?.jvmErasure?.let {
-                                                prop.setter.call(obj, ResultSet.fromXmlElement(elem, it))
-                                            }
-                                }
-                            }
-                        }
-                    }
-        }
     }
 }
 
 object XmlUtil {
-    fun <T : Any> elementToObject(elem: Element, type: KClass<T>): T {
-        val inst = type.createInstance()
-        type.publicMemberProperties
-                .filterIsInstance<KMutableProperty1<Any, Any>>()
+    fun <T : Any> elementToObject(elem: Element, gClass: GenericClass<T>): T {
+        val inst = gClass.createInstance()
+        // println(inst::class)
+        gClass.kClass.memberProperties
+                .filter { it.visibility == KVisibility.PUBLIC }
+                .filterIsInstance<KMutableProperty1<T, Any>>()
                 .forEach { prop ->
                     var name = prop.findAnnotation<Property>()?.name ?: ""
                     if (name == "") name = prop.name
@@ -168,19 +136,20 @@ object XmlUtil {
         return inst
     }
 
-    inline fun <reified T : Any> elementToObject(elem: Element): T = elementToObject(elem, T::class)
-
-    fun <T : Any> fromXmlElement(elem: Element, type: KClass<T>): T {
-        val inst = type.createInstance()
-        type.publicMemberProperties
-                .filterIsInstance<KMutableProperty<*>>()
+    fun <T : Any> fromXmlElement(elem: Element, gClass: GenericClass<T>): T {
+        val inst = gClass.createInstance()
+        gClass.kClass.memberProperties
+                .filter { it.visibility == KVisibility.PUBLIC }
+                .filterIsInstance<KMutableProperty1<T, Any>>()
                 .forEach { prop ->
+                    println("FXE: $prop")
                     if (prop.findAnnotation<Ignore>() != null)
                         return@forEach
 
                     val an = prop.findAnnotation<Tag>()
                     var namespace = an?.namespace ?: ""
                     if (namespace == "") namespace = "*"
+
                     var localName = an?.name ?: ""
                     val index = localName.indexOf(":")
                     if (index >= 0) localName = localName.substring(index + 1)
@@ -190,64 +159,50 @@ object XmlUtil {
                             .asSequence()
                             .filterIsInstance<Element>()
                             .firstOrNull()
-                            ?.let {
-                                prop.setter.call(inst,
-                                        if (prop.returnType.isSubtypeOf(Result.type))
-                                            @Suppress("UNCHECKED_CAST")
-                                            Result.fromXmlElement(it,
-                                                    prop.returnType.jvmErasure as KClass<Result>)
-                                        else
-                                            fromXmlElement(it, prop.returnType.jvmErasure)
-                                )
+                            ?.let { elem ->
+                                val type = prop.returnType
+                                if (type.isSubtypeOf(Result.type)) {
+                                    prop.set(inst, Result.fromXmlElement(elem,
+                                            GenericClass(type.jvmErasure)))
+                                } else if (type.arguments.isNotEmpty()) {
+                                    val args = type.arguments.map {
+                                        println("TA: $it")
+                                        val classifier = it.type?.classifier
+                                        if (classifier is KTypeParameter) {
+                                            val resolvedClass = gClass.resolveTypeParameter(classifier)
+                                            println("RSLV: $resolvedClass|${resolvedClass?.kClass}")
+                                            resolvedClass ?: GenericClass(Object::class)
+                                        } else {
+                                            GenericClass<Any>(it.type?.jvmErasure ?: Object::class)
+                                        }
+                                    }
+                                    prop.set(inst, fromXmlElement(elem, GenericClass(type.jvmErasure, args)))
+                                } else {
+                                    val classifier = type.classifier
+                                    if (classifier is KTypeParameter) {
+                                        val subGClass = gClass.resolveTypeParameter(classifier)
+                                        if (subGClass != null) {
+                                            if (subGClass.isSubclassOf(Result::class)) {
+                                                @Suppress("UNCHECKED_CAST")
+                                                prop.set(inst, Result.fromXmlElement(elem,
+                                                        subGClass as GenericClass<Result>))
+                                            } else {
+                                                prop.set(inst, fromXmlElement(elem, subGClass))
+                                            }
+                                        }
+                                    } else {
+                                        prop.set(inst, fromXmlElement(elem,
+                                                GenericClass(type.jvmErasure)))
+                                    }
+                                }
                             }
                 }
         return inst
     }
 
-    inline fun <reified T : Any> fromXmlElement(elem: Element): T = fromXmlElement(elem, T::class)
+    fun <T : Any> fromXml(xml: String, gClass: GenericClass<T>): T = fromXmlElement(rootElement(xml), gClass)
 
-    inline fun <reified T : Any> fromXml(xml: String): T = fromXmlElement(rootElement(xml), T::class)
-
-    fun <T : Any> Element.populateObject(obj: T): T {
-        obj::class.publicMemberProperties
-                .filterIsInstance<KMutableProperty<*>>()
-                .forEach { prop ->
-                    if (prop.findAnnotation<Ignore>() != null)
-                        return@forEach
-
-                    val an = prop.findAnnotation<Tag>()
-                    var namespace = an?.namespace ?: ""
-                    if (namespace == "") namespace = "*"
-                    var localName = an?.name ?: ""
-                    val index = localName.indexOf(":")
-                    if (index >= 0) localName = localName.substring(index + 1)
-                    if (localName == "") localName = prop.name
-
-                    getElementsByTagNameNS(namespace, localName)
-                            .asSequence()
-                            .filterIsInstance<Element>()
-                            .firstOrNull()
-                            ?.let {
-                                if (prop.returnType.isSubtypeOf(Result.type)) {
-                                    val o = prop.getter.call(obj) as? Result
-                                    @Suppress("UNCHECKED_CAST")
-                                    val c = prop.returnType.jvmErasure as KClass<Result>
-                                    if (o != null)
-                                        it.populateResult(o)
-                                    else
-                                        prop.setter.call(obj, Result.fromXmlElement(it, c))
-                                } else {
-                                    val o = prop.getter.call(obj)
-                                    if (o != null)
-                                        it.populateObject(o)
-                                    else
-                                        prop.setter.call(obj,
-                                                fromXmlElement(it, prop.returnType.jvmErasure))
-                                }
-                            }
-                }
-        return obj
-    }
+    inline fun <reified T : Any> fromXml(xml: String, vararg typeArguments: KClass<*>): T = fromXml(xml, GenericClass(T::class, *typeArguments))
 
     fun rootElement(xml: String): Element = DocumentBuilderFactory.newInstance()
             .apply { isNamespaceAware = true }
@@ -274,7 +229,7 @@ open class Parameter : Jsonable() {
                 doc.createElement(tagName)
             else
                 doc.createElementNS(namespace, tagName)
-            param::class.publicMemberProperties
+            GenericClass<T>(param::class).declaredProperties
                     .filterIsInstance<KProperty1<Any, Any>>()
                     .forEach { prop ->
                         if (prop.findAnnotation<Ignore>() != null)
@@ -302,7 +257,7 @@ fun <T : Any> Document.toXmlElement(obj: T, tagName: String, namespace: String? 
     else {
         this.createElementNS(namespace, tagName)
     }
-    obj::class.publicMemberProperties
+    GenericClass<T>(obj::class).declaredProperties
             .filterIsInstance<KProperty1<Any, Any?>>()
             .forEach { prop ->
                 if (prop.findAnnotation<Ignore>() != null)
@@ -345,31 +300,3 @@ fun Document.transfromToString(declare: String? = null): String {
         it.buffer.toString()
     }
 }
-
-private val javaDeclaredPropertiesMap = mutableMapOf<KClass<*>, List<KProperty1<*, *>>>()
-
-val <T : Any> KClass<T>.javaDeclaredProperties: List<KProperty1<*, *>>
-    get() {
-        val ret = javaDeclaredPropertiesMap[this]
-        if (ret != null) return ret
-
-        var jclass = java as Class<*>
-        val fields = mutableListOf<Field>()
-        while (jclass != Object::class.java) {
-            fields.addAll(jclass.declaredFields)
-            jclass = jclass.superclass as Class<*>
-        }
-        val properties = Array<KProperty1<*, *>?>(fields.size) { null }
-        memberProperties.forEach { prop ->
-            val index = fields.indexOfFirst {
-                it.name == prop.name
-            }
-            if (index >= 0) properties[index] = prop
-        }
-        return properties.filterNotNull().apply {
-            javaDeclaredPropertiesMap[this@javaDeclaredProperties] = this
-        }
-    }
-
-val <T : Any> KClass<T>.publicMemberProperties: Sequence<KProperty1<*, *>>
-    get() = this.javaDeclaredProperties.filter { it.visibility == KVisibility.PUBLIC }.asSequence()

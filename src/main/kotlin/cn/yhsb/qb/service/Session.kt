@@ -3,8 +3,6 @@ package cn.yhsb.qb.service
 import cn.yhsb.base.HttpRequest
 import cn.yhsb.base.HttpSocket
 import cn.yhsb.qb.Config
-import cn.yhsb.qb.service.XmlUtil.populateObject
-import cn.yhsb.qb.service.XmlUtil.rootElement
 import java.nio.charset.Charset
 
 class Session(host: String, port: Int, private val userID: String, private val password: String)
@@ -55,13 +53,14 @@ class Session(host: String, port: Int, private val userID: String, private val p
 
     fun sendService(param: ParameterWithFunID) = request(toService(param))
 
-    fun <T : Result, S : Result> populateResult(xml: String, result: T, header: S): T =
-            rootElement(xml).populateObject(OutEnvelope({header}, {result})).result
+    inline fun <reified T : Result, reified S : Result> responseFrom(xml: String) = OutEnvelope.fromXml<T, S>(xml)
 
-    fun <T : Result> populateResult(xml: String, result: T): T =
-            rootElement(xml).populateObject(OutEnvelope({OutHeader()}, {result})).result
+    inline fun <reified T : Result, reified S : Result> receiveResponse() = OutEnvelope.fromXml<T, S>(readBody())
 
-    fun <T : Result> fetchResult(result: T): T = populateResult(readBody(), result)
+    inline fun <reified T : Result> fromResult(xml: String): T? = responseFrom<OutHeader, T>(xml).result
+
+    inline fun <reified T : Result> getResult() = fromResult<T>(readBody())
+
 
     fun login(): String {
         sendService(Login())
