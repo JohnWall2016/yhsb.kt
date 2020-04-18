@@ -129,7 +129,7 @@ class XmlTest {
 </out:business>"""
 
         val rs = Result.fromXmlElement(XmlUtil.rootElement(xml),
-                GenericClass<Business>(Business::class))
+                GenericClass(Business::class))
         println(rs.rowCount)
         println(rs.querySql)
         rs.queryList.forEach {
