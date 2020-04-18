@@ -8,10 +8,9 @@ import kotlin.reflect.full.memberProperties
 
 private val declaredPropertiesMap = mutableMapOf<KClass<*>, List<KProperty1<*,*>>>()
 
-@Suppress("UNCHECKED_CAST")
-class GenericClass<T : Any>(val kClass: KClass<*>,
+class GenericClass<T : Any>(val kClass: KClass<T>,
                             val typeArguments: List<GenericClass<*>> = listOf()
-) :KClass<T> by kClass as KClass<T> {
+) :KClass<T> by kClass {
 
     init {
         if (kClass.typeParameters.size != typeArguments.size)
@@ -19,8 +18,8 @@ class GenericClass<T : Any>(val kClass: KClass<*>,
                     "the size is mismatched, expect ${kClass.typeParameters.size} got ${typeArguments.size}")
     }
 
-    constructor(kClass: KClass<*>, vararg typeArguments: KClass<*>)
-            : this(kClass, typeArguments.map { if (it is GenericClass<*>) it else GenericClass<Any>(it) })
+    constructor(kClass: KClass<T>, vararg typeArguments: KClass<*>)
+            : this(kClass, typeArguments.map { if (it is GenericClass<*>) it else GenericClass(it) })
 
     fun resolveTypeParameter(param: KTypeParameter): GenericClass<*>? {
         val index = kClass.typeParameters.indexOf(param)
@@ -45,8 +44,8 @@ class GenericClass<T : Any>(val kClass: KClass<*>,
             val index = fields.indexOfFirst {
                 it.name == prop.name
             }
-            if (index >= 0) properties[index] = prop as KProperty1<T, *>
-            else propertiesNotMatch.add(prop as KProperty1<T, *>)
+            if (index >= 0) properties[index] = prop
+            else propertiesNotMatch.add(prop)
         }
 
         return if (propertiesNotMatch.isEmpty()) {

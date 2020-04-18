@@ -90,7 +90,7 @@ open class Result : Jsonable() {
                                                     gClass.resolveTypeParameter(classifier)
                                                 } else {
                                                     // println(it.jvmErasure)
-                                                    GenericClass<Any>(it.jvmErasure)
+                                                    GenericClass(it.jvmErasure)
                                                 }
                                                 if (subGClass != null)
                                                     prop.set(inst,
@@ -162,8 +162,9 @@ object XmlUtil {
                             ?.let { elem ->
                                 val type = prop.returnType
                                 if (type.isSubtypeOf(Result.type)) {
+                                    @Suppress("UNCHECKED_CAST")
                                     prop.set(inst, Result.fromXmlElement(elem,
-                                            GenericClass(type.jvmErasure)))
+                                            GenericClass(type.jvmErasure as KClass<Result>)))
                                 } else if (type.arguments.isNotEmpty()) {
                                     val args = type.arguments.map {
                                         println("TA: $it")
@@ -173,7 +174,7 @@ object XmlUtil {
                                             println("RSLV: $resolvedClass|${resolvedClass?.kClass}")
                                             resolvedClass ?: GenericClass(Object::class)
                                         } else {
-                                            GenericClass<Any>(it.type?.jvmErasure ?: Object::class)
+                                            GenericClass(it.type?.jvmErasure ?: Object::class)
                                         }
                                     }
                                     prop.set(inst, fromXmlElement(elem, GenericClass(type.jvmErasure, args)))
@@ -229,7 +230,7 @@ open class Parameter : Jsonable() {
                 doc.createElement(tagName)
             else
                 doc.createElementNS(namespace, tagName)
-            GenericClass<T>(param::class).declaredProperties
+            GenericClass(param::class).declaredProperties
                     .filterIsInstance<KProperty1<Any, Any>>()
                     .forEach { prop ->
                         if (prop.findAnnotation<Ignore>() != null)
@@ -257,7 +258,7 @@ fun <T : Any> Document.toXmlElement(obj: T, tagName: String, namespace: String? 
     else {
         this.createElementNS(namespace, tagName)
     }
-    GenericClass<T>(obj::class).declaredProperties
+    GenericClass(obj::class).declaredProperties
             .filterIsInstance<KProperty1<Any, Any?>>()
             .forEach { prop ->
                 if (prop.findAnnotation<Ignore>() != null)

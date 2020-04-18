@@ -47,8 +47,7 @@ class TypeTest {
 
     @Test
     fun testType() {
-        val obj = createObject(GenericClass<Email<Header, Body>>(
-                Email::class, Header::class, Body::class))
+        val obj = createObject(GenericClass(Email::class, Header::class, Body::class))
         println(obj)
     }
 }
