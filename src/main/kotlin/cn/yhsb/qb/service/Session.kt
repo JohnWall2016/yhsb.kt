@@ -57,9 +57,9 @@ class Session(host: String, port: Int, private val userID: String, private val p
 
     inline fun <reified T : Result, reified S : Result> receiveResponse() = OutEnvelope.fromXml<T, S>(readBody())
 
-    inline fun <reified T : Result> fromResult(xml: String): T? = responseFrom<OutHeader, T>(xml).result
+    inline fun <reified T : Result> resultFrom(xml: String): T? = responseFrom<OutHeader, T>(xml).result
 
-    inline fun <reified T : Result> getResult() = fromResult<T>(readBody())
+    inline fun <reified T : Result> getResult() = resultFrom<T>(readBody())
 
 
     fun login(): String {

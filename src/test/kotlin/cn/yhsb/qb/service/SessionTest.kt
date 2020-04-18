@@ -8,7 +8,7 @@ class SessionTest {
         Session.new().use {
             val ret = it.login()
             println(ret)
-            it.fromResult<Login.Result>(ret).let(::println)
+            it.resultFrom<Login.Result>(ret).let(::println)
         }
     }
 
