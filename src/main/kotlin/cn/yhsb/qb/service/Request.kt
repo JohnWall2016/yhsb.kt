@@ -48,8 +48,7 @@ class OutEnvelope<T : Result, S : Result> {
 
     companion object {
         inline fun <reified T : Result, reified S : Result> fromXml(xml: String): OutEnvelope<T, S> {
-            return XmlUtil.fromXml<OutEnvelope<T, S>>(
-                    xml, GenericClass(OutEnvelope::class, T::class, S::class)).apply {
+            return XmlUtil.fromXml<OutEnvelope<T, S>>(xml, T::class, S::class).apply {
                 this.xml = xml
             }
         }

@@ -142,7 +142,7 @@ object XmlUtil {
                 .filter { it.visibility == KVisibility.PUBLIC }
                 .filterIsInstance<KMutableProperty1<T, Any>>()
                 .forEach { prop ->
-                    println("FXE: $prop")
+                    // println("FXE: $prop")
                     if (prop.findAnnotation<Ignore>() != null)
                         return@forEach
 
@@ -167,11 +167,11 @@ object XmlUtil {
                                             GenericClass(type.jvmErasure as KClass<Result>)))
                                 } else if (type.arguments.isNotEmpty()) {
                                     val args = type.arguments.map {
-                                        println("TA: $it")
+                                        // println("TA: $it")
                                         val classifier = it.type?.classifier
                                         if (classifier is KTypeParameter) {
                                             val resolvedClass = gClass.resolveTypeParameter(classifier)
-                                            println("RSLV: $resolvedClass|${resolvedClass?.kClass}")
+                                            // println("RSLV: $resolvedClass|${resolvedClass?.kClass}")
                                             resolvedClass ?: GenericClass(Object::class)
                                         } else {
                                             GenericClass(it.type?.jvmErasure ?: Object::class)
@@ -201,9 +201,9 @@ object XmlUtil {
         return inst
     }
 
-    fun <T : Any> fromXml(xml: String, gClass: GenericClass<T>): T = fromXmlElement(rootElement(xml), gClass)
+    fun <T : Any> fromXml(gClass: GenericClass<T>, xml: String): T = fromXmlElement(rootElement(xml), gClass)
 
-    inline fun <reified T : Any> fromXml(xml: String, vararg typeArguments: KClass<*>): T = fromXml(xml, GenericClass(T::class, *typeArguments))
+    inline fun <reified T : Any> fromXml(xml: String, vararg typeArguments: KClass<*>): T = fromXml(GenericClass(T::class, *typeArguments), xml)
 
     fun rootElement(xml: String): Element = DocumentBuilderFactory.newInstance()
             .apply { isNamespaceAware = true }

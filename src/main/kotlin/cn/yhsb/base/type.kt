@@ -15,7 +15,8 @@ class GenericClass<T : Any>(val kClass: KClass<T>,
     init {
         if (kClass.typeParameters.size != typeArguments.size)
             throw IllegalArgumentException(
-                    "the size is mismatched, expect ${kClass.typeParameters.size} got ${typeArguments.size}")
+                    "the size is mismatched, $kClass expect ${kClass.typeParameters.size} " +
+                            "got ${typeArguments.size} $typeArguments")
     }
 
     constructor(kClass: KClass<T>, vararg typeArguments: KClass<*>)
@@ -55,6 +56,10 @@ class GenericClass<T : Any>(val kClass: KClass<T>,
                 addAll(propertiesNotMatch)
             }
         }.apply { declaredPropertiesMap[kClass] = this }
+    }
+
+    override fun toString(): String {
+        return "GenericClass<$kClass>"
     }
 }
 
