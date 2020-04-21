@@ -2,6 +2,9 @@ package cn.yhsb.base
 
 import picocli.CommandLine
 import java.lang.StringBuilder
+import java.math.BigDecimal
+import java.math.BigInteger
+import java.math.RoundingMode
 import kotlin.reflect.full.createType
 
 
@@ -81,5 +84,71 @@ open class CustomField {
 
     companion object {
         val type = CustomField::class.createType()
+    }
+}
+
+object ChineseNumber {
+    private val numbers = arrayOf("零", "壹", "贰", "叁", "肆",
+            "伍", "陆", "柒", "捌", "玖")
+    private val places = arrayOf("", "拾", "佰", "仟", "万", "亿")
+    private val units = arrayOf("元", "角", "分")
+    private const val whole = "整"
+
+    private val TEN = BigInteger("10")
+    private val HUNDRED = BigInteger("100")
+    private val ZERO = BigInteger.ZERO
+
+    fun BigDecimal.toChineseMoney(): String {
+        val value = (this.setScale(2, RoundingMode.HALF_UP)
+                * BigDecimal("100")).toBigIntegerExact()
+        var integer = value / HUNDRED
+        val fraction = value % HUNDRED
+
+        val length = integer.toString().length
+        var result = ""
+        var zero = false
+        for (i in length downTo 0) {
+            val base = TEN.pow(i)
+            val quotient = integer / base
+            if (quotient > ZERO) {
+                if (zero) result += numbers[0]
+                result += numbers[quotient.toInt()] + places[i % 4]
+                zero = false
+            } else if (quotient == ZERO && result != "") {
+                zero = true
+            }
+            if (i >= 4) {
+                if (i % 8 == 0 && result != "") {
+                    result += places[5]
+                } else if (i % 4 == 0 && result != "") {
+                    result += places[4]
+                }
+            }
+            integer %= base
+            if (integer == ZERO && i != 0) {
+                zero = true
+                break
+            }
+        }
+        result += units[0]
+
+        if (fraction == ZERO) {
+            result += whole
+        } else {
+            val quotient = fraction / TEN
+            if (quotient == ZERO) {
+                if (zero) result += numbers[0]
+                result += numbers[quotient.toInt()] + units[1] + whole
+            } else {
+                if (zero || quotient == ZERO) {
+                    result += numbers[0]
+                }
+                if (quotient != ZERO) {
+                    result += numbers[quotient.toInt()] + units[1]
+                }
+                result += numbers[(fraction % TEN).toInt()] + units[2]
+            }
+        }
+        return result
     }
 }
