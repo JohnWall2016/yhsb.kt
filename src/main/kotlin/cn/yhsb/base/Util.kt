@@ -136,7 +136,8 @@ object ChineseNumber {
             result += whole
         } else {
             val quotient = fraction / TEN
-            if (quotient == ZERO) {
+            val remainder = fraction % TEN
+            if (remainder == ZERO) {
                 if (zero) result += numbers[0]
                 result += numbers[quotient.toInt()] + units[1] + whole
             } else {
@@ -146,7 +147,7 @@ object ChineseNumber {
                 if (quotient != ZERO) {
                     result += numbers[quotient.toInt()] + units[1]
                 }
-                result += numbers[(fraction % TEN).toInt()] + units[2]
+                result += numbers[remainder.toInt()] + units[2]
             }
         }
         return result
